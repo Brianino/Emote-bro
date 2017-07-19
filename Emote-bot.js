@@ -453,7 +453,7 @@ function readjsonfile() {
 	/*
 	* READ AND STORE JSON DATA FROM A TXT FILE
 	*/
-	fs.readFile("../selfbots/JSON.txt", "utf8", function read(err, data) {
+	fs.readFile("JSON.txt", "utf8", function read(err, data) {
 		if(err) {
 			return console.log(err.message);
 		}
