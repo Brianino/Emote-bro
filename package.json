@@ -1,0 +1,26 @@
+{
+  "name": "Emote-Bro",
+  "version": "0.0.1",
+  "description": "A shitty bot to search for emotes",
+  "engines": {
+    "node": "6.11.0"
+  },
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "11.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Brianino/Emote-bro"
+  },
+  "keywords": [
+    "node", 
+    "bot", 
+    "discord", 
+    "emote"
+  ],
+  "license": "None"
+}

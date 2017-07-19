@@ -1,0 +1,8 @@
+{
+  "name": "Emote-Bro",
+  "description": "A stupid bot to search for emotes",
+  "repository": "https://github.com/Brianino/Emote-bro",
+  "logo": "https://cdn.discordapp.com/emojis/327532138461134848.png",
+  "keywords": ["node", "bot", "discord", "emote"],
+  "image": "heroku/nodejs"
+}
