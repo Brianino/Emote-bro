@@ -449,11 +449,23 @@ function altMessageEvent(message) {
 	}
 }
 
+function writejsonfile() {
+	/*
+	* WRITE AND STORE JSON DATA TO FILE
+	*/
+	fs.writeFile("Files/ServerList.json", JSON.stringify(arr), function(err) {
+		if(err) {
+			return console.log(err);
+		}
+		console.log("The file was saved!");
+	});
+}
+
 function readjsonfile() {
 	/*
 	* READ AND STORE JSON DATA FROM A TXT FILE
 	*/
-	fs.readFile("JSON.txt", "utf8", function read(err, data) {
+	fs.readFile("Files/ServerList.json", "utf8", function read(err, data) {
 		if(err) {
 			return console.log(err.message);
 		}
@@ -466,7 +478,7 @@ function readuserjsonfile() {
 	/*
 	* READ AND STORE VALID USERS FROM A TXT FILE
 	*/
-	fs.readFile("Users.txt", "utf8", function read(err, data) {
+	fs.readFile("Files/Users.json", "utf8", function read(err, data) {
 		if(err) {
 			return console.log(err.message);
 		}
@@ -479,7 +491,7 @@ function writeuserjsonfile() {
 	/*
 	* WRITE VALID USERS TO A TXT FILE
 	*/
-	fs.writeFile("Users.txt", JSON.stringify(users), function(err) {
+	fs.writeFile("Files/Users.json", JSON.stringify(users), function(err) {
 		if(err) {
 			return console.log(err);
 		}
@@ -491,7 +503,7 @@ function readgcljsonfile() {
 	/*
 	* READ AND STORE VALID GUILDS AND CHANNELS FROM A TXT FILE
 	*/
-	fs.readFile("Guilds.txt", "utf8", function read(err, data) {
+	fs.readFile("Files/Guilds.json", "utf8", function read(err, data) {
 		if(err) {
 			return console.log(err.message);
 		}
@@ -504,7 +516,7 @@ function writegcljsonfile() {
 	/*
 	* WRITE VALID GUILDS AND CHANNELS TO A TXT FILE
 	*/
-	fs.writeFile("Guilds.txt", JSON.stringify(gcl), function(err) {
+	fs.writeFile("Files/Guilds.json", JSON.stringify(gcl), function(err) {
 		if(err) {
 			return console.log(err.message);
 		}
@@ -519,7 +531,7 @@ function readsettingsjsonfile() {
 	var temp = {
 		"prefix" : prefix,
 	}
-	fs.readFile("Settings.txt", "utf8", function read(err, data) {
+	fs.readFile("Files/Settings.json", "utf8", function read(err, data) {
 		if(err) {
 			prefix = '.';
 			console.log("Prefix set to: " + prefix);
@@ -538,7 +550,7 @@ function writesettingsjsonfile() {
 	var temp = {
 		"prefix" : prefix
 	}
-	fs.writeFile("Settings.txt", JSON.stringify(temp), function(err) {
+	fs.writeFile("Settings.json", JSON.stringify(temp), function(err) {
 		if(err) {
 			return console.log(err.message);
 		}
