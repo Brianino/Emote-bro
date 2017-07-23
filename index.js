@@ -1,9 +1,10 @@
 const Discord = require('discord.js');
 const config = require('./config.js');
+const globals = require('./global.js');
 
 var arr = [], arrF = [], dfm = true, timecount = [];
 var cId = '', aId = '', shg = false, prefix = '';
-var users = [], gcl = [], owner = '', msgdelete = {};
+var users = [], gcl = [], msgdelete = {};
 var fs = require('fs');
 
 const bot = new Discord.Client();
@@ -902,5 +903,4 @@ function logGlobals() {
 	console.log("Guild ID Not Empty: " + (gId != ''));
 }
 
-console.log(config);
 bot.login(config.token); //Bot Token
