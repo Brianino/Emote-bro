@@ -1,4 +1,5 @@
 const Discord = require('discord.js');
+const commands = require('./commands.js');
 const config = require('./config.js');
 const globals = require('./global.js');
 

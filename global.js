@@ -2,7 +2,6 @@ var globalfunc = (function () {
 	var globals = {};
 	var servers = [], sorted = false;
 	var userqueue = {}, prefix = '';
-	var test = "";
 
 	/*
 	var arrF = [], dfm = true;
