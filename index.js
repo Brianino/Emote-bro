@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const config = require('./config.js');
+const config = require('./\Files/config.js');
 const globals = require('./global.js');
 
 var arr = [], arrF = [], dfm = true, timecount = [];
