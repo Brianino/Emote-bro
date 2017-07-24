@@ -1,7 +1,7 @@
 var globalfunc = (function () {
-	var globals = {};
+	var globals = {}, prefix = {};
 	var servers = [], sorted = false;
-	var userqueue = {}, prefix = '';
+	var userqueue = {};
 
 	/*
 	var arrF = [], dfm = true;
@@ -18,7 +18,7 @@ var globalfunc = (function () {
 		return servers[index];
 	};
 	globals.addserver = function (obj) {
-		var large = 0, temparr = [], temparr2 = [];
+		var large = 0;
 		var temp = {
 			"id" : "",
 			"name" : "",
@@ -51,12 +51,12 @@ var globalfunc = (function () {
 		for (var i = 0; i < large; i++) {
 			if (i > obj.emotes.managed.length) {
 				try {
-					temparr.push({
+					temp.emotes.managed.push({
 						"id" : obj.emotes.managed[i].id,
 						"name" : obj.emotes.managed[i].name
 					});
 				} catch (e) {
-					temparr.push({
+					temp.emotes.managed.push({
 						"id" : "",
 						"name" : obj.emotes.managed[i]
 					});
@@ -64,20 +64,18 @@ var globalfunc = (function () {
 			}
 			if (i > obj.emotes.unmanaged.length) {
 				try {
-					temparr2.push({
+					temp.emotes.unmanaged.push({
 						"id" : obj.emotes.unmanaged[i].id,
 						"name" : obj.emotes.unmanaged[i].name
 					});
 				} catch (e) {
-					temparr2.push({
+					temp.emotes.unmanaged.push({
 						"id" : "",
 						"name" : obj.emotes.unmanaged[i]
 					});
 				}
 			}
 		}
-		temp.emotes.managed = temparr;
-		temp.emotes.unmanaged = temparr2;
 		if (sorted) {
 			//Enter right place
 			try {
@@ -282,8 +280,15 @@ var globalfunc = (function () {
 		}
 		return false;
 	};
-	globals.p = function () {
-		return prefix;
+	globals.p = function (server) {
+		var pref = "";
+		try {
+			pref = prefix.[server];
+		} catch (e) {
+			prefix.[server] = '.';
+			pref = '.';
+		}
+		return pref;
 	};
 	function getuser (id) {
 		for (var i = 0; i < userqueue.length; i++) {
