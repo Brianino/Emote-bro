@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const commands = require('./commands.js');
 const config = require('./config.js');
-const globals = require('./global.js');
+const globals = require('./Globals/global.js');
 
 var arr = [], arrF = [], dfm = true, timecount = [];
 var cId = '', aId = '', shg = false, prefix = '';
@@ -505,7 +505,7 @@ function readgcljsonfile() {
 	/*
 	* READ AND STORE VALID GUILDS AND CHANNELS FROM A TXT FILE
 	*/
-	fs.readFile("Files/Guilds.json", "utf8", function read(err, data) {
+	fs.readFile("Files/Channels.json", "utf8", function read(err, data) {
 		if(err) {
 			return console.log(err.message);
 		}
@@ -518,7 +518,7 @@ function writegcljsonfile() {
 	/*
 	* WRITE VALID GUILDS AND CHANNELS TO A TXT FILE
 	*/
-	fs.writeFile("Files/Guilds.json", JSON.stringify(gcl), function(err) {
+	fs.writeFile("Files/Channels.json", JSON.stringify(gcl), function(err) {
 		if(err) {
 			return console.log(err.message);
 		}

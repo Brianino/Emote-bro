@@ -1,10 +1,11 @@
 var serverfunc = (function () {
 	var servers = [], obj = {};
-	var sorted = false;
+	var sorted = true;
 
+	readjsonfile();
 	obj.count = function () {
 		return servers.length;
-	}
+	};
 	obj.server = function (index) {
 		if (index >= servers.length && servers.length != 0) {
 			index = servers.length - 1;
@@ -13,7 +14,7 @@ var serverfunc = (function () {
 		}
 		return servers[index];
 	};
-	obj.addserver = function (obj) {
+	obj.addserver = function (objlist) {
 		var large = 0;
 		var temp = {
 			"id" : "",
@@ -31,43 +32,43 @@ var serverfunc = (function () {
 				}]
 			}
 		}
-		temp.id = obj.id;
-		temp.name = obj.name;
+		temp.id = objlist.id;
+		temp.name = objlist.name;
 		try {
-			temp.link = obj.link;
+			temp.link = objlist.link;
 		} catch (e) {
 			console.log("Link Missing");
 		}
 		try {
-			temp.icon = obj.icon;
+			temp.icon = objlist.icon;
 		} catch (e) {
 			console.log("Icon Missing");
 		}
-		large = Math.max(obj.emotes.managed.length, obj.emotes.unmanaged.length);
+		large = Math.max(objlist.emotes.managed.length, objlist.emotes.unmanaged.length);
 		for (var i = 0; i < large; i++) {
-			if (i > obj.emotes.managed.length) {
+			if (i > objlist.emotes.managed.length) {
 				try {
 					temp.emotes.managed.push({
-						"id" : obj.emotes.managed[i].id,
-						"name" : obj.emotes.managed[i].name
+						"id" : objlist.emotes.managed[i].id,
+						"name" : objlist.emotes.managed[i].name
 					});
 				} catch (e) {
 					temp.emotes.managed.push({
 						"id" : "",
-						"name" : obj.emotes.managed[i]
+						"name" : objlist.emotes.managed[i]
 					});
 				}
 			}
 			if (i > obj.emotes.unmanaged.length) {
 				try {
 					temp.emotes.unmanaged.push({
-						"id" : obj.emotes.unmanaged[i].id,
-						"name" : obj.emotes.unmanaged[i].name
+						"id" : objlist.emotes.unmanaged[i].id,
+						"name" : objlist.emotes.unmanaged[i].name
 					});
 				} catch (e) {
 					temp.emotes.unmanaged.push({
 						"id" : "",
-						"name" : obj.emotes.unmanaged[i]
+						"name" : objlist.emotes.unmanaged[i]
 					});
 				}
 			}
@@ -79,7 +80,11 @@ var serverfunc = (function () {
 				servers.splice(index, 0, temp);
 			} catch (e) {
 				if (typeof(e) === 'number') {
-					servers.splice(e, 0, temp);
+					if (e > 0) {
+						servers.splice(e, 0, temp);
+					} else {
+						servers.unshift(temp);
+					}
 				} else {
 					console.log(e.message);
 				}
@@ -158,7 +163,11 @@ var serverfunc = (function () {
 						servers.splice(index, 0, temp);
 					} catch (e) {
 						if (typeof(e) === 'number') {
-							servers.splice(e, 0, temp);
+							if (e > 0) {
+								servers.splice(e, 0, temp);
+							} else {
+								servers.unshift(temp);
+							}
 						} else {
 							console.log(e.message);
 						}
@@ -181,8 +190,10 @@ var serverfunc = (function () {
 			if (pos === lim || pos === lpos) {
 				if (servers[pos].id === id) {
 					return pos;
-				} else {
+				} else if (servers[pos].id <= id) {
 					throw pos;
+				} else {
+					throw pos - 1;
 				}
 			}
 			if (servers[pos].id === id) {
@@ -199,6 +210,7 @@ var serverfunc = (function () {
 			}
 		}
 	};
+	obj.write = writejsonfile();
 	function quicksort (min = 0, max = (servers.length - 1)) {
 		var pointer = min, temp = {};
 
@@ -219,6 +231,29 @@ var serverfunc = (function () {
 		if ((max - pointer) >= 2) {
 			quicksort(pointer + 1, max);
 		}
+	};
+	function writejsonfile() {
+		/*
+		* WRITE AND STORE SERVER DATA TO FILE
+		*/
+		fs.writeFile(".../Files/ServerList.json", JSON.stringify(servers), function(err) {
+			if(err) {
+				return console.log(err);
+			}
+			console.log("The file was saved!");
+		});
+	};
+	function readjsonfile() {
+		/*
+		* READ AND STORE SERVER DATA FROM A FILE
+		*/
+		fs.readFile(".../Files/ServerList.json", "utf8", function read(err, data) {
+			if(err) {
+				return console.log(err.message);
+			}
+			console.log("Data loaded!");
+			obj.fillservers(JSON.parse(data));
+		});
 	};
 	return obj;
 })();

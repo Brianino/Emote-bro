@@ -56,7 +56,7 @@ var searches = (function () {
 		} else {
 			return false;
 		}
-	}
+	};
 	function getuser (id) {
 		for (var i = 0; i < userqueue.length; i++) {
 			if (userqueue[i].id === id) {
