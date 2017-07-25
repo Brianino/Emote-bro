@@ -2,7 +2,7 @@ var commands = {};
 
 commands.setrun = function (method, com) {
 	try {
-		this.[com].run = method();
+		this.[com].run = method;
 	} catch (e) {
 		return e.message;
 	}

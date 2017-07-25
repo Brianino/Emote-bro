@@ -22,27 +22,7 @@ var globals = (function () {
 		return pref;
 	};
 	globals.blacklistadd = function (channelid) {
-		if (globals.verifychannel(checkchannel)) {
-			blacklist.push(channelid);
-		}
-	};
-	globals.blacklistremove = function (channelid) {
-		for (var i = 0; i < blacklist.length; i++) {
-			if (blacklist[i] == channelid) {
-				blacklist.splice(i, 1);
-				return true;
-			}
-		}
-		return false;
-	}
-	globals.verifychannel = function (channelid) {
-		//check channel is not blacklisted
-		for (var i = 0; i < blacklist.length; i++) {
-			if (blacklist[i] == channelid) {
-				return false;
-			}
-		}
-		return true;
+
 	};
 	return globals;
 })();
