@@ -8,7 +8,7 @@ var globals = (function () {
 	globals.newprefix = function (pref, guild) {
 		if (pref != null && pref != '') {
 			try {
-				prefix.[channel] = pref;
+				prefix[channel] = pref;
 				writesettingsjsonfile();
 			} catch (e) {
 				console.log(e.message);
@@ -20,9 +20,9 @@ var globals = (function () {
 	globals.p = function (server) {
 		var pref = "";
 		try {
-			pref = prefix.[server];
+			pref = prefix[server];
 		} catch (e) {
-			prefix.[server] = '.';
+			prefix[server] = '.';
 			pref = '.';
 		}
 		return pref;
@@ -54,7 +54,7 @@ var globals = (function () {
 	globals.increaseperms = function (userid, amount) {
 		var level = 0;
 		try {
-			level = perms.[userid];
+			level = perms[userid];
 		} catch (e) {
 			console.log(e.message);
 			level = 0;
@@ -65,7 +65,7 @@ var globals = (function () {
 			level = level + amount;
 		}
 		try {
-			perms.[userid] = level;
+			perms[userid] = level;
 			console.log("Updated user " + userid + " to " + level);
 		} catch (e) {
 			console.log(e.message);
@@ -74,7 +74,7 @@ var globals = (function () {
 	globals.removeperms = function (userid, amount) {
 		var level = 0;
 		try {
-			level = perms.[userid];
+			level = perms[userid];
 		} catch (e) {
 			console.log(e.message);
 			level = 0;
@@ -85,7 +85,7 @@ var globals = (function () {
 			level = level - amount;
 		}
 		try {
-			perms.[userid] = level;
+			perms[userid] = level;
 			console.log("Updated user " + userid + " to " + level);
 		} catch (e) {
 			console.log(e.message);
@@ -94,7 +94,7 @@ var globals = (function () {
 	globals.getperms = function (userid) {
 		var perms = 0;
 		try {
-			perms = perms.[userid];
+			perms = perms[userid];
 		} catch (e) {
 			perms = 0;
 		}
@@ -113,7 +113,7 @@ var globals = (function () {
 			temp = JSON.parse(data);
 			try {
 				for (var name in temp) {
-					prefix.[name] = temp.[name];
+					prefix[name] = temp[name];
 				}
 			} catch (e) {
 				console.log(e.message);
@@ -139,7 +139,7 @@ var globals = (function () {
 			if(err) {
 				return console.log(err.message);
 			}
-			console.log("Whitelisted Channels were loaded!");
+			console.log("Whitelisted Guilds were loaded!");
 			blacklist = JSON.parse(data);
 		});
 	};
@@ -151,10 +151,10 @@ var globals = (function () {
 			if(err) {
 				return console.log(err.message);
 			}
-			console.log("Whitelisted Channels were saved!");
+			console.log("Whitelisted Guilds were saved!");
 		});
 	};
 	return globals;
 })();
 
-module.exports = globalfunc;
+module.exports = globals;

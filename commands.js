@@ -2,7 +2,7 @@ var commands = {};
 
 commands.setrun = function (method, com) {
 	try {
-		this.[com].run = method;
+		this[com].run = method;
 	} catch (e) {
 		return e.message;
 	}
@@ -21,10 +21,10 @@ commands.help = {
 		};
 		for (var name in commands) {
 			//verify perm level
-			if (this.[name].permlevel <= perm) {
+			if (this[name].permlevel <= perm) {
 				embedobj.fields.push({
 					"name" : name,
-					"value" : commands.[name].description,
+					"value" : commands[name].description,
 					"inline" : false
 				});
 			}

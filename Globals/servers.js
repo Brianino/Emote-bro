@@ -1,6 +1,7 @@
 var serverfunc = (function () {
 	var servers = [], obj = {};
 	var sorted = true;
+	var fs = require('fs');
 
 	readjsonfile();
 	obj.count = function () {
@@ -236,9 +237,9 @@ var serverfunc = (function () {
 		/*
 		* WRITE AND STORE SERVER DATA TO FILE
 		*/
-		fs.writeFile(".../Files/ServerList.json", JSON.stringify(servers), function(err) {
+		fs.writeFile("Files/ServerList.json", JSON.stringify(servers), function(err) {
 			if(err) {
-				return console.log(err);
+				return console.log(err.message);
 			}
 			console.log("The file was saved!");
 		});
@@ -247,7 +248,7 @@ var serverfunc = (function () {
 		/*
 		* READ AND STORE SERVER DATA FROM A FILE
 		*/
-		fs.readFile(".../Files/ServerList.json", "utf8", function read(err, data) {
+		fs.readFile("Files/ServerList.json", "utf8", function read(err, data) {
 			if(err) {
 				return console.log(err.message);
 			}

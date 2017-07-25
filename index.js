@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 const commands = require('./commands.js');
 const config = require('./config.js');
 const globals = require('./Globals/global.js');
+const servers = require('./Globals/servers.js');
 
 var arr = [], arrF = [], dfm = true, timecount = [];
 var cId = '', aId = '', shg = false, prefix = '';
@@ -31,7 +32,7 @@ bot.on('ready', () => {
 	readsettingsjsonfile();
 	readuserjsonfile();
 	readgcljsonfile();
-	readjsonfile();
+	//readjsonfile();
 	console.log("Ready");
 });
 
@@ -552,7 +553,7 @@ function writesettingsjsonfile() {
 	var temp = {
 		"prefix" : prefix
 	}
-	fs.writeFile("Settings.json", JSON.stringify(temp), function(err) {
+	fs.writeFile("Files/Settings.json", JSON.stringify(temp), function(err) {
 		if(err) {
 			return console.log(err.message);
 		}
