@@ -139,7 +139,7 @@ var globals = (function () {
 			if(err) {
 				return console.log(err.message);
 			}
-			console.log("Whitelisted Guilds were loaded!");
+			console.log("Whitelisted Channels were loaded!");
 			blacklist = JSON.parse(data);
 		});
 	};
@@ -151,7 +151,7 @@ var globals = (function () {
 			if(err) {
 				return console.log(err.message);
 			}
-			console.log("Whitelisted Guilds were saved!");
+			console.log("Whitelisted Channels were saved!");
 		});
 	};
 	return globals;
