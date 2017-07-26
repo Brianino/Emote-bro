@@ -211,7 +211,7 @@ var serverfunc = (function () {
 			}
 		}
 	};
-	obj.write = writejsonfile();
+	obj.write = writejsonfile;
 	function quicksort (min = 0, max = (servers.length - 1)) {
 		var pointer = min, temp = {};
 
@@ -241,7 +241,7 @@ var serverfunc = (function () {
 			if(err) {
 				return console.log(err.message);
 			}
-			console.log("The file was saved!");
+			console.log("Servers saved!");
 		});
 	};
 	function readjsonfile() {
@@ -252,7 +252,7 @@ var serverfunc = (function () {
 			if(err) {
 				return console.log(err.message);
 			}
-			console.log("Data loaded!");
+			console.log("Servers loaded!");
 			obj.fillservers(JSON.parse(data));
 		});
 	};

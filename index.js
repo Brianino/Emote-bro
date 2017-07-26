@@ -1,8 +1,9 @@
 const Discord = require('discord.js');
-const commands = require('./commands.js');
 const config = require('./config.js');
+const commands = require('./commands.js');
 const globals = require('./Globals/global.js');
 const servers = require('./Globals/servers.js');
+const search = require('./Globals/searches.js');
 
 var arr = [], arrF = [], dfm = true, timecount = [];
 var cId = '', aId = '', shg = false, prefix = '';
@@ -29,14 +30,57 @@ function timer(seconds, timer) {
 };
 
 bot.on('ready', () => {
-	readsettingsjsonfile();
-	readuserjsonfile();
-	readgcljsonfile();
-	//readjsonfile();
+	globals.setowner(config.owner);
+	linkcommands();
 	console.log("Ready");
 });
 
-bot.on('message', defaultMessageEvent);
+function linkcommands () {
+	/*
+	for (var name in core) {
+		commands.setrun(core[name], name);
+	};
+	*/
+	commands.setrun("count", function (msg) {
+		try {
+			msg.reply(servers.count());
+			return true;
+		} catch (e) {
+			console.log(e.message);
+			return false;
+		}
+	});
+	commands.setrun("log", function (msg) {
+		try {
+			console.log("Prefix: " + globals.p(msg.guild.id);
+			console.log("Servers: " + servers.count());
+			console.log("Search In Progress: " + search.searching());
+		} catch (e) {
+			console.log(e.message);
+		}
+	});
+	commands.setrun("quit", function (msg) {
+		if(message.deletable) {
+			message.delete().then(function() {
+				bot.destroy().then(function() {
+					process.exit();
+				});
+			});
+		} else {
+			bot.destroy().then(function() {
+				process.exit();
+			});
+		}
+	});
+};
+
+bot.on('message', (message) => {
+	/*
+	WORK ON THIS
+	if (message.content.)
+	if (globals.getperms(message.author.id) >= commands)
+	*/
+});
 
 function defaultMessageEvent(message) {
 	/*
@@ -460,7 +504,7 @@ function writejsonfile() {
 		if(err) {
 			return console.log(err);
 		}
-		console.log("The file was saved!");
+		//console.log("The file was saved!");
 	});
 }
 
@@ -472,7 +516,7 @@ function readjsonfile() {
 		if(err) {
 			return console.log(err.message);
 		}
-		console.log("Data loaded!");
+		//console.log("Data loaded!");
 		arr = JSON.parse(data);
 	});
 }
@@ -485,7 +529,7 @@ function readuserjsonfile() {
 		if(err) {
 			return console.log(err.message);
 		}
-		console.log("Users were loaded!");
+		//console.log("Users were loaded!");
 		users = JSON.parse(data);
 	});
 }
@@ -498,7 +542,7 @@ function writeuserjsonfile() {
 		if(err) {
 			return console.log(err);
 		}
-		console.log("Users were saved!");
+		//console.log("Users were saved!");
 	});
 }
 
@@ -510,7 +554,7 @@ function readgcljsonfile() {
 		if(err) {
 			return console.log(err.message);
 		}
-		console.log("Whitelisted Guilds were loaded!");
+		//console.log("Whitelisted Guilds were loaded!");
 		gcl = JSON.parse(data);
 	});
 }
@@ -523,7 +567,7 @@ function writegcljsonfile() {
 		if(err) {
 			return console.log(err.message);
 		}
-		console.log("Whitelisted Guilds were saved!");
+		//console.log("Whitelisted Guilds were saved!");
 	});
 }
 
@@ -541,7 +585,12 @@ function readsettingsjsonfile() {
 			return console.log(err.message);
 		}
 		console.log("Settings were loaded!");
-		prefix = JSON.parse(data).prefix;
+		try {
+			prefix = JSON.parse(data).prefix;
+		} catch (e) {
+			console.log(e.message);
+			prefix = '.';
+		}
 		console.log("Prefix set to: " + prefix);
 	});
 }
@@ -557,7 +606,7 @@ function writesettingsjsonfile() {
 		if(err) {
 			return console.log(err.message);
 		}
-		console.log("Settings were saved!");
+		//console.log("Settings were saved!");
 	});
 }
 

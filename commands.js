@@ -1,6 +1,6 @@
 var commands = {};
 
-commands.setrun = function (method, com) {
+commands.setrun = function (com, method) {
 	try {
 		this[com].run = method;
 	} catch (e) {
@@ -35,84 +35,84 @@ commands.help = {
 commands.count = {
 	"description" : "Display stored server count",
 	"permlevel" : 0,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//display stored server count
 	}
 };
 commands.id = {
 	"description" : "Search for a server by guild id",
 	"permlevel" : 0,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//search for server by id
 	},
 };
 commands.name = {
 	"description" : "Search for a server by guild name",
 	"permlevel" : 0,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//search for server by name
 	}
 };
 commands.emote = {
 	"description" : "Search for an emote",
 	"permlevel" : 0,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//Search for an emote
 	}
 };
 commands.refresh = {
 	"description" : "Refresh server list",
 	"permlevel" : 10,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//run refresh function
 	}
 };
 commands.log = {
 	"description" : "Log global vars",
 	"permlevel" : 10,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//log global vars
 	}
 };
 commands.disp = {
 	"description" : "Display server at specified array index",
 	"permlevel" : 1,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//display server at index
 	}
 };
 commands.add = {
 	"description" : "Increase specified user perms",
 	"permlevel" : 1,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//increase user perms
 	}
 };
 commands.remove = {
 	"description" : "Lower specified user perms",
 	"permlevel" : 1,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//lower user perms
 	}
 };
 commands.blacklist = {
 	"description" : "Add channels to blacklist to ignore them, or remove them from the blacklist",
 	"permlevel" : 1,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//blacklist channel or remove from blacklist
 	}
 };
 commands.prefix = {
 	"description" : "Change bot command prefix",
 	"permlevel" : 2,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//change bot prefix
 	}
 };
 commands.quit = {
 	"description" : "Shutdown bot",
 	"permlevel" : 10,
-	"run" : function (msg, perm) {
+	"run" : function () {
 		//shutdown bot
 	}
 };

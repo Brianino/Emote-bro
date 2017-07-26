@@ -1,6 +1,7 @@
-var globals = (function () {
+var globalsfn = (function () {
 	var globals = {}, prefix = {};
 	var blacklist = [], perms = {};
+	var owner = "";
 	var fs = require('fs');
 
 	readsettingsjsonfile();
@@ -8,8 +9,9 @@ var globals = (function () {
 	globals.newprefix = function (pref, guild) {
 		if (pref != null && pref != '') {
 			try {
-				prefix[channel] = pref;
-				writesettingsjsonfile();
+				prefix[guild] = pref;
+				console.log(guild + " set to " + pref);
+				//writesettingsjsonfile();
 			} catch (e) {
 				console.log(e.message);
 			}
@@ -93,25 +95,38 @@ var globals = (function () {
 	};
 	globals.getperms = function (userid) {
 		var perms = 0;
+		if (userid === owner) {
+			return 10;
+		}
 		try {
 			perms = perms[userid];
+			if (perms === undefined) {
+				perms = 0;
+			}
 		} catch (e) {
 			perms = 0;
 		}
 		return perms;
+	};
+	globals.setowner = function (userid) {
+		if (owner === "") {
+			owner = userid;
+		} else {
+			throw 'Owner already set';
+		}
 	};
 	function readsettingsjsonfile() {
 		/*
 		* READ SETTINGS FROM FILE
 		*/
 		var temp = {};
-		fs.readFile(".../Files/Settings.json", "utf8", function read(err, data) {
+		fs.readFile("Files/Settings.json", "utf8", function read(err, data) {
 			if(err) {
 				return console.log(err.message);
 			}
 			console.log("Settings were loaded!");
-			temp = JSON.parse(data);
 			try {
+				temp = JSON.parse(data);
 				for (var name in temp) {
 					prefix[name] = temp[name];
 				}
@@ -124,7 +139,7 @@ var globals = (function () {
 		/*
 		* WRITE SETTINGS TO FILE
 		*/
-		fs.writeFile(".../Files/Settings.json", JSON.stringify(prefix), function(err) {
+		fs.writeFile("Files/Settings.json", JSON.stringify(prefix), function(err) {
 			if(err) {
 				return console.log(err.message);
 			}
@@ -135,7 +150,7 @@ var globals = (function () {
 		/*
 		* READ AND STORE CHANNEL BLACKLIST FROM A JSON FILE
 		*/
-		fs.readFile("./.../Files/Channels.json", "utf8", function read(err, data) {
+		fs.readFile("Files/Channels.json", "utf8", function read(err, data) {
 			if(err) {
 				return console.log(err.message);
 			}
@@ -147,7 +162,7 @@ var globals = (function () {
 		/*
 		* WRITE CHANNEL BLACKLIST TO A JSON FILE
 		*/
-		fs.writeFile("./.../Files/Channels.json", JSON.stringify(blacklist), function(err) {
+		fs.writeFile("Files/Channels.json", JSON.stringify(blacklist), function(err) {
 			if(err) {
 				return console.log(err.message);
 			}
@@ -157,4 +172,4 @@ var globals = (function () {
 	return globals;
 })();
 
-module.exports = globals;
+module.exports = globalsfn;
