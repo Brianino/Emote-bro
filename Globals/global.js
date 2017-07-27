@@ -23,9 +23,15 @@ var globalsfn = (function () {
 		var pref = "";
 		try {
 			pref = prefix[server];
+			if (pref === null || pref === undefined) {
+				prefix[server] = '.';
+				pref = '.';
+				console.log("Prefix for " + server + " set to: " + pref)
+				writesettingsjsonfile();
+			}
 		} catch (e) {
-			prefix[server] = '.';
-			pref = '.';
+			console.log(e.message);
+			pref = ".";
 		}
 		return pref;
 	};

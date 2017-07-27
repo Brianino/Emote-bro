@@ -1,15 +1,37 @@
 var commands = {};
 
-commands.setrun = function (com, method) {
+commands.setrun = function (com, reqinput = false, method) {
 	try {
+		this[com].reqinput = reqinput;
 		this[com].run = method;
 	} catch (e) {
 		return e.message;
 	}
 };
+commands.getperms = function (com) {
+	var perm = 0;
+	try {
+		perm = this[com].permlevel;
+		if (perm === undefined || perm === null) {
+			perm = 11;
+		}
+	} catch (e) {
+		console.log(com + " is invalid");
+		perm = 11;
+	}
+	return perm;
+};
+commands.reqinput = function (com) {
+	try {
+		return this[com].reqinput;
+	} catch (e) {
+		console.log(e.message);
+	}
+}
 commands.help = {
 	"description" : "Show all available commands",
 	"permlevel" : 0,
+	"reqinput" : false,
 	"run" : function (msg, perm) {
 		//show help
 		var embedobj = {};
@@ -35,6 +57,7 @@ commands.help = {
 commands.count = {
 	"description" : "Display stored server count",
 	"permlevel" : 0,
+	"reqinput" : false,
 	"run" : function () {
 		//display stored server count
 	}
@@ -42,6 +65,7 @@ commands.count = {
 commands.id = {
 	"description" : "Search for a server by guild id",
 	"permlevel" : 0,
+	"reqinput" : false,
 	"run" : function () {
 		//search for server by id
 	},
@@ -49,6 +73,7 @@ commands.id = {
 commands.name = {
 	"description" : "Search for a server by guild name",
 	"permlevel" : 0,
+	"reqinput" : false,
 	"run" : function () {
 		//search for server by name
 	}
@@ -56,6 +81,7 @@ commands.name = {
 commands.emote = {
 	"description" : "Search for an emote",
 	"permlevel" : 0,
+	"reqinput" : false,
 	"run" : function () {
 		//Search for an emote
 	}
@@ -63,6 +89,7 @@ commands.emote = {
 commands.refresh = {
 	"description" : "Refresh server list",
 	"permlevel" : 10,
+	"reqinput" : false,
 	"run" : function () {
 		//run refresh function
 	}
@@ -70,6 +97,7 @@ commands.refresh = {
 commands.log = {
 	"description" : "Log global vars",
 	"permlevel" : 10,
+	"reqinput" : false,
 	"run" : function () {
 		//log global vars
 	}
@@ -77,6 +105,7 @@ commands.log = {
 commands.disp = {
 	"description" : "Display server at specified array index",
 	"permlevel" : 1,
+	"reqinput" : false,
 	"run" : function () {
 		//display server at index
 	}
@@ -84,6 +113,7 @@ commands.disp = {
 commands.add = {
 	"description" : "Increase specified user perms",
 	"permlevel" : 1,
+	"reqinput" : false,
 	"run" : function () {
 		//increase user perms
 	}
@@ -91,6 +121,7 @@ commands.add = {
 commands.remove = {
 	"description" : "Lower specified user perms",
 	"permlevel" : 1,
+	"reqinput" : false,
 	"run" : function () {
 		//lower user perms
 	}
@@ -98,6 +129,7 @@ commands.remove = {
 commands.blacklist = {
 	"description" : "Add channels to blacklist to ignore them, or remove them from the blacklist",
 	"permlevel" : 1,
+	"reqinput" : false,
 	"run" : function () {
 		//blacklist channel or remove from blacklist
 	}
@@ -105,6 +137,7 @@ commands.blacklist = {
 commands.prefix = {
 	"description" : "Change bot command prefix",
 	"permlevel" : 2,
+	"reqinput" : false,
 	"run" : function () {
 		//change bot prefix
 	}
@@ -112,6 +145,7 @@ commands.prefix = {
 commands.quit = {
 	"description" : "Shutdown bot",
 	"permlevel" : 10,
+	"reqinput" : false,
 	"run" : function () {
 		//shutdown bot
 	}

@@ -41,7 +41,7 @@ function linkcommands () {
 		commands.setrun(core[name], name);
 	};
 	*/
-	commands.setrun("count", function (msg) {
+	commands.setrun("count", false, function (msg) {
 		try {
 			msg.reply(servers.count());
 			return true;
@@ -50,18 +50,18 @@ function linkcommands () {
 			return false;
 		}
 	});
-	commands.setrun("log", function (msg) {
+	commands.setrun("log", false, function (msg) {
 		try {
-			console.log("Prefix: " + globals.p(msg.guild.id);
+			console.log("Prefix: " + globals.p(msg.guild.id));
 			console.log("Servers: " + servers.count());
 			console.log("Search In Progress: " + search.searching());
 		} catch (e) {
 			console.log(e.message);
 		}
 	});
-	commands.setrun("quit", function (msg) {
-		if(message.deletable) {
-			message.delete().then(function() {
+	commands.setrun("quit", false, function (msg) {
+		if(msg.deletable) {
+			msg.delete().then(function() {
 				bot.destroy().then(function() {
 					process.exit();
 				});
@@ -77,9 +77,31 @@ function linkcommands () {
 bot.on('message', (message) => {
 	/*
 	WORK ON THIS
-	if (message.content.)
-	if (globals.getperms(message.author.id) >= commands)
 	*/
+	var content = '', sections = [], com = '';
+	if (message.content.search(globals.p(message.guild.id)) === 0) {
+		content = message.content.substring(globals.p(message.guild.id).length);
+		sections = content.split(" ");
+		com = sections[0];
+		if (sections.length > 1) {
+			sections.splice(0, 1);
+		} else {
+			sections.pop();
+		}
+		if (globals.getperms(message.author.id) >= commands.getperms(com)) {
+			if (commands.reqinput(com)) {
+				for (var i = 0; i < sections.length; i++) {
+					if (sections[i] === "" || sections[i] === null || sections[i] === undefined) {
+						sections.splice(i, 1);
+						i--;
+					}
+				}
+				commands[com].run(message, sections.join(" "));
+			} else {
+				commands[com].run(message);
+			}
+		}
+	}
 });
 
 function defaultMessageEvent(message) {
