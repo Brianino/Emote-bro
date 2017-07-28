@@ -50,6 +50,29 @@ function linkcommands () {
 			return false;
 		}
 	});
+	commands.setrun("disp", true, function (msg, str) {
+		var index = parseInt(str);
+
+		console.log("Input: " + str);
+		console.log("Index: " + index);
+		if (index != NaN) {
+			dispserver(msg, index);
+		}
+	});
+	commands.setrun("id", true, function (msg, str) {
+		var id = parseInt(str), index = 0;
+
+		console.log("Input: " + str);
+		try {
+			index = servers.findbyid(id);
+		} catch (e) {
+			index = -1;
+		}
+		console.log("Index: " + index);
+		if (index > -1) {
+			dispserver(msg, index);
+		}
+	});
 	commands.setrun("log", false, function (msg) {
 		try {
 			console.log("Prefix: " + globals.p(msg.guild.id));
@@ -78,17 +101,24 @@ bot.on('message', (message) => {
 	/*
 	WORK ON THIS
 	*/
-	var content = '', sections = [], com = '';
-	if (message.content.search(globals.p(message.guild.id)) === 0) {
-		content = message.content.substring(globals.p(message.guild.id).length);
-		sections = content.split(" ");
-		com = sections[0];
+	var content = '', sections = [], com = '', perms = 0, prefix = '';
+	var temp = [];
+
+	prefix = globals.p(message.guild.id);
+	if (message.content.startsWith(prefix)) {
+		content = message.content.substring(prefix.length);
+		temp = content.split("\n");
+		for (var i = 0; i < temp.length; i++) {
+			sections = sections.concat(temp[i].split(" "));
+		}
+		com = sections[0].toLowerCase();
 		if (sections.length > 1) {
 			sections.splice(0, 1);
 		} else {
 			sections.pop();
 		}
-		if (globals.getperms(message.author.id) >= commands.getperms(com)) {
+		perms = globals.getperms(message.author.id);
+		if (perms >= commands.getperms(com)) {
 			if (commands.reqinput(com)) {
 				for (var i = 0; i < sections.length; i++) {
 					if (sections[i] === "" || sections[i] === null || sections[i] === undefined) {
@@ -96,13 +126,82 @@ bot.on('message', (message) => {
 						i--;
 					}
 				}
-				commands[com].run(message, sections.join(" "));
+				try {
+					if (com === 'test') {
+						commands[com].run(message, content.substring(content.search("\n") + 2));
+					} else {
+						commands[com].run(message, sections.join(" "));
+					}
+				} catch (e) {
+					console.log(e.message);
+					if (e.message === 'invalid usage') {
+						message.reply(" correct usage is " + commands.getusage(com));
+					}
+				}
 			} else {
-				commands[com].run(message);
+				if (com === 'help') {
+					try {
+						commands[com].run(message, perms, prefix);
+					} catch (e) {
+						if (e.message === 'invalid usage') {
+							message.reply(" correct usage is " + commands.getusage(com));
+						}
+					}
+				} else {
+					try {
+						commands[com].run(message);
+					}  catch (e) {
+						if (e.message === 'invalid usage') {
+							message.reply(" correct usage is " + commands.getusage(com));
+						}
+					}
+				}
 			}
 		}
 	}
 });
+
+function dispserver (msg, index) {
+	var embedobj = {}, server = servers.server(index), lim = 0;
+	var managed = [], unmanaged = [], str1 = "", str2 = "";
+
+	embedobj = {
+		"title" : server.name,
+		"description" : server.link,
+		"color" : 0x0000FF,
+		"thumbnail" : {
+			"url" : server.icon,
+			"height" : 50,
+			"width" : 50
+		},
+		"fields" : []
+	}
+	console.log(server.emotes.managed);
+	lim = Math.max(server.emotes.managed.length, server.emotes.unmanaged.length);
+	for (var i = 0; i < lim; i++) {
+		if (i < server.emotes.managed.length) {
+			managed.push(server.emotes.managed[i].name)
+		}
+		if (i < server.emotes.unmanaged.length) {
+			managed.push(server.emotes.unmanaged[i].name)
+		}
+	}
+	str1 = managed.join(" ");
+	str2 = unmanaged.join(" ")
+	console.log("Global: " + str1);
+	console.log("Local: " + str2);
+	embedobj.fields.push({
+		"name" : "Global",
+		"value" : str1,
+		"inline" : false
+	});
+	embedobj.fields.push({
+		"name" : "Local",
+		"value" : str2,
+		"inline" : false
+	});
+	msg.channel.send({embed: embedobj});
+}
 
 function defaultMessageEvent(message) {
 	/*
