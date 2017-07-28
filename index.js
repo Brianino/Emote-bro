@@ -66,6 +66,7 @@ function linkcommands () {
 		try {
 			index = servers.findbyid(id);
 		} catch (e) {
+			console.log(e);
 			index = -1;
 		}
 		console.log("Index: " + index);
@@ -165,6 +166,7 @@ function dispserver (msg, index) {
 	var embedobj = {}, server = servers.server(index), lim = 0;
 	var managed = [], unmanaged = [], str1 = "", str2 = "";
 
+	console.log("Displaying: " + server.id);
 	embedobj = {
 		"title" : server.name,
 		"description" : server.link,
@@ -176,20 +178,25 @@ function dispserver (msg, index) {
 		},
 		"fields" : []
 	}
-	console.log(server.emotes.managed);
 	lim = Math.max(server.emotes.managed.length, server.emotes.unmanaged.length);
 	for (var i = 0; i < lim; i++) {
 		if (i < server.emotes.managed.length) {
 			managed.push(server.emotes.managed[i].name)
 		}
 		if (i < server.emotes.unmanaged.length) {
-			managed.push(server.emotes.unmanaged[i].name)
+			unmanaged.push(server.emotes.unmanaged[i].name)
 		}
 	}
-	str1 = managed.join(" ");
-	str2 = unmanaged.join(" ")
-	console.log("Global: " + str1);
-	console.log("Local: " + str2);
+	if (managed.length > 0) {
+		str1 = managed.join(" ");
+	} else {
+		str1 = "None";
+	}
+	if (unmanaged.length > 0) {
+		str2 = unmanaged.join(" ");
+	} else {
+		str2 = "None";
+	}
 	embedobj.fields.push({
 		"name" : "Global",
 		"value" : str1,

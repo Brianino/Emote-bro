@@ -15,7 +15,7 @@ var serverfunc = (function () {
 		}
 		return servers[index];
 	};
-	obj.addserver = function (objlist) {
+	obj.addserver = function (server) {
 		var large = 0;
 		var temp = {
 			"id" : "",
@@ -33,43 +33,54 @@ var serverfunc = (function () {
 				}]
 			}
 		}
-		temp.id = objlist.id;
-		temp.name = objlist.name;
+		temp.id = server.id;
+		temp.name = server.name;
+		if (server.id === undefined || server.name === undefined) {
+			throw "Error: Missing vital server info";
+		}
 		try {
-			temp.link = objlist.link;
+			temp.link = server.link;
+			if (server.link === undefined) {
+				console.log("Link Missing");
+				temp.link = "";
+			}
 		} catch (e) {
 			console.log("Link Missing");
 		}
 		try {
-			temp.icon = objlist.icon;
+			temp.icon = server.icon;
+			if (server.icon === undefined) {
+				console.log("Icon Missing");
+				temp.icon = "";
+			}
 		} catch (e) {
 			console.log("Icon Missing");
 		}
-		large = Math.max(objlist.emotes.managed.length, objlist.emotes.unmanaged.length);
+		large = Math.max(server.emotes.managed.length, server.emotes.unmanaged.length);
 		for (var i = 0; i < large; i++) {
-			if (i > objlist.emotes.managed.length) {
+			if (i < server.emotes.managed.length) {
 				try {
 					temp.emotes.managed.push({
-						"id" : objlist.emotes.managed[i].id,
-						"name" : objlist.emotes.managed[i].name
+						"id" : server.emotes.managed[i].id,
+						"name" : server.emotes.managed[i].name
 					});
 				} catch (e) {
 					temp.emotes.managed.push({
 						"id" : "",
-						"name" : objlist.emotes.managed[i]
+						"name" : server.emotes.managed[i]
 					});
 				}
 			}
-			if (i > obj.emotes.unmanaged.length) {
+			if (i < obj.emotes.unmanaged.length) {
 				try {
 					temp.emotes.unmanaged.push({
-						"id" : objlist.emotes.unmanaged[i].id,
-						"name" : objlist.emotes.unmanaged[i].name
+						"id" : server.emotes.unmanaged[i].id,
+						"name" : server.emotes.unmanaged[i].name
 					});
 				} catch (e) {
 					temp.emotes.unmanaged.push({
 						"id" : "",
-						"name" : objlist.emotes.unmanaged[i]
+						"name" : server.emotes.unmanaged[i]
 					});
 				}
 			}
@@ -77,7 +88,7 @@ var serverfunc = (function () {
 		if (sorted) {
 			//Enter right place
 			try {
-				index = obj.getserver(temp.id);
+				index = obj.findbyid(temp.id);
 				servers.splice(index, 0, temp);
 			} catch (e) {
 				if (typeof(e) === 'number') {
@@ -94,121 +105,110 @@ var serverfunc = (function () {
 			servers.push(temp);
 		}
 	};
-	obj.fillservers = function (obj) {
+	obj.fillservers = function (serverlist) {
 		var test = "", count = 0, empty = true, temp = {}, large = 0;
-		var temparr = [], temparr2 = [], index = 0;
-		try {
-			while (i < obj.length && empty) {
-				if (obj[count].emotes.managed.length > 0) {
-					test = obj[count].emotes.managed[0].id;
-					empty = false;
-				} else if (obj[count].emotes.unmanaged.length > 0) {
-					test = obj[count].emotes.unmanaged[0].id;
-					empty = false;
-				}
-				count++;
+		var index = 0;
+
+		if (typeof(serverlist[0].emotes.managed[0]) === 'object') {
+			console.log("new version not saved!!!!!!!");
+			servers = serverlist;
+		}
+		for (var i = 0; i < serverlist.length; i++) {
+			if (serverlist[i].id == 214249708711837696) {
+				console.log("Mum's house is here");
 			}
-			servers = obj;
-		} catch (e) {
-			for (var i = 0; i < obj.length; i++) {
-				temp = {
-					"id" : "",
-					"name" : "",
-					"link" : "",
-					"icon" : "",
-					"emotes" : {
-						"managed" : [{
-							"id" : "",
-							"name" : ""
-						}],
-						"unmanaged" : [{
-							"id" : "",
-							"name" : ""
-						}]
-					}
+			temp = {
+				"id" : serverlist[i].id,
+				"name" : serverlist[i].name,
+				"link" : serverlist[i].link,
+				"icon" : serverlist[i].icon,
+				"emotes" : {
+					"managed" : [],
+					"unmanaged" : []
 				}
-				temp.id = obj.id;
-				temp.name = obj.name;
-				temp.link = obj.link;
-				temp.icon = obj.icon;
-				large = Math.max(obj.emotes.managed.length, obj.emotes.unmanaged.length);
-				for (var j = 0; j < large; j++) {
-					if (i > obj.emotes.managed.length) {
-						try {
-							temparr.push({
-								"id" : obj.emotes.managed[i].id,
-								"name" : obj.emotes.managed[i].name});
-						} catch (e) {
-							temparr.push({
-								"id" : "",
-								"name" : obj.emotes.managed[i]});
-						}
-					}
-					if (i > obj.emotes.unmanaged.length) {
-						try {
-							temparr2.push({
-								"id" : obj.emotes.unmanaged[i].id,
-								"name" : obj.emotes.unmanaged[i].name});
-						} catch (e) {
-							temparr2.push({
-								"id" : "",
-								"name" : obj.emotes.unmanaged[i]});
-						}
-					}
+			}
+			large = Math.max(serverlist[i].emotes.managed.length, serverlist[i].emotes.unmanaged.length);
+			for (var j = 0; j < large; j++) {
+				if (j < serverlist[i].emotes.managed.length) {
+					temp.emotes.managed.push({
+						"id" : "",
+						"name" : serverlist[i].emotes.managed[j]
+					});
 				}
-				temp.emotes.managed = temparr;
-				temp.emotes.unmanaged = temparr2;
-				if (sorted) {
-					try {
-						index = obj.getserver(temp.id);
-						servers.splice(index, 0, temp);
-					} catch (e) {
-						if (typeof(e) === 'number') {
-							if (e > 0) {
-								servers.splice(e, 0, temp);
-							} else {
-								servers.unshift(temp);
-							}
+				if (j < serverlist[i].emotes.unmanaged.length) {
+					temp.emotes.unmanaged.push({
+						"id" : "",
+						"name" : serverlist[i].emotes.unmanaged[j]
+					});
+				}
+			}
+			if (sorted) {
+				//console.log(id);
+				try {
+					index = obj.findbyid(temp.id);
+					servers.splice(index, 0, temp);
+				} catch (e) {
+					if (typeof(e) === 'number') {
+						if (e > -1) {
+							servers.splice(e, 0, temp);
+						} else {
+							servers.unshift(temp);
+						}
+					} else {
+						if (e === 'first') {
+							servers.push(temp);
 						} else {
 							console.log(e.message);
 						}
 					}
-				} else {
-					servers.push(temp);
 				}
+			} else {
+				servers.push(temp);
 			}
 		}
 	};
 	obj.findbyid = function (id) {
-		var pos = 0, lpos = 0, lim = servers.length - 1;
+		var pos = 0, min = 0, lim = servers.length - 1;
+		var count = 0, e = {};
+
+		if(lim === -1) {
+			throw "first";
+		}
 		if (!sorted) {
 			//sort
 			quicksort();
 			sorted = true;
 		}
-		pos = Math.ceil(servers.length/2)
-		while (true ) {
-			if (pos === lim || pos === lpos) {
-				if (servers[pos].id === id) {
-					return pos;
-				} else if (servers[pos].id <= id) {
+		//pos = Math.floor(servers.length/2);
+		while (count < 30) {
+			if (lim < min) {
+				if (servers[pos].id < id) {
 					throw pos;
-				} else {
+				} else if (servers[pos].id > id) {
 					throw pos - 1;
+				} else {
+					e = {
+						"name" : "Error finding by id",
+						"message" : "Error finding: " + id
+					}
+					throw e;
 				}
+			}
+			pos = Math.floor((lim + min)/2);
+			if (id === 214249708711837696) {
+				console.log(min + "<" + pos + "<" + lim);
+				console.log(servers[pos].id === id);
+				console.log(servers[pos].id > id);
+				console.log(servers[pos].id < id);
 			}
 			if (servers[pos].id === id) {
 				return pos;
 			} else if (servers[pos].id < id) {
-				lpos = pos;
-				pos = Math.ceil((lim - lpos) / 2) + lpos;
+				min = pos + 1;
 			} else {
-				lim = pos;
-				pos = Math.ceil((lim - lpos) / 2) + lpos;
-				if (lim == pos) {
-					pos = pos - 1;
-				}
+				lim = pos - 1;
 			}
+			count++;
 		}
 	};
 	obj.write = writejsonfile;
