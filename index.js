@@ -36,25 +36,18 @@ bot.on('ready', () => {
 });
 
 function linkcommands () {
-	/*
-	for (var name in core) {
-		commands.setrun(core[name], name);
-	};
-	*/
 	commands.setrun("count", false, function (msg) {
-		try {
-			msg.reply(servers.count());
-			return true;
-		} catch (e) {
-			console.log(e.message);
-			return false;
+		if (msg.deletable) {
+			msg.delete();
 		}
+		msg.reply(servers.count());
 	});
 	commands.setrun("disp", true, function (msg, str) {
 		var index = parseInt(str);
 
-		console.log("Input: " + str);
-		console.log("Index: " + index);
+		if (msg.deletable) {
+			msg.delete();
+		}
 		if (index != NaN) {
 			dispserver(msg, index);
 		}
@@ -62,7 +55,15 @@ function linkcommands () {
 	commands.setrun("id", true, function (msg, str) {
 		var id = parseInt(str), index = 0;
 
-		console.log("Input: " + str);
+		if (msg.deletable) {
+			msg.delete();
+		}
+		if (id == NaN) {
+			throw {
+				"name" : "invalid usage",
+				"message" : str + " is not a valid id"
+			}
+		}
 		try {
 			index = servers.findbyid(id);
 		} catch (e) {
@@ -72,6 +73,90 @@ function linkcommands () {
 		console.log("Index: " + index);
 		if (index > -1) {
 			dispserver(msg, index);
+		}
+	});
+	commands.setrun("name", true, function (msg, str) {
+		var count = servers.count, temp = "", found = [];
+
+		if (msg.deletable) {
+			msg.delete();
+		}
+		if (str == null || str == undefined || typeof(str) != 'string') {
+			throw {
+				"name" : "invalid usage",
+				"message" : "invalid input: " + str
+			}
+		}
+		for (var i = 0; i < count; i++) {
+			temp = servers.prop(i, 'name');
+			if (temp.includes("str")) {
+				found.push(i);
+			}
+		}
+		if (found.length == 0) {
+			msg.reply("unable to find server");
+		} else if (found.length == 1) {
+			dispserver(msg, found[0]);
+		} else {
+			search.addusertoqueue(msg.author.id, msg.channel.id, found, 'name');
+			timer(60, msg.author.id);
+			disppage(msg, 0);
+		}
+	});
+	commands.setrun("emote", true, function (msg, str) {
+		var count = servers.count, temp = {}, found = false;
+		var lim = 0, counter = 0, res = [];
+
+		if (msg.deletable) {
+			msg.delete();
+		}
+		if (str == null || str == undefined || typeof(str) != 'string') {
+			throw {
+				"name" : "invalid usage",
+				"message" : "invalid input: " + str
+			}
+		}
+		for (var i = 0; i < count; i++) {
+			temp = servers.server(i);
+			lim = Math.max(server.emotes.managed.length, server.emotes.unmanaged.length);
+			for (var j = 0; j < lim; j++) {
+				if (j < server.emotes.managed.length) {
+					if (server.emotes.managed[j].name.includes(str)) {
+						if (!found) {
+							res.push({
+								"index" : i,
+								"managed" : 0,
+								"unmanaged" : 0
+							});
+						}
+						res[res.length - 1].managed++;
+						found = true;
+					}
+				}
+				if (j < server.emotes.unmanaged.length) {
+					if (server.emotes.unmanaged[j].name.includes(str)) {
+						if (!found) {
+							res.push({
+								"index" : i,
+								"managed" : 0,
+								"unmanaged" : 0
+							});
+						}
+						res[res.length - 1].unmanaged++;
+						found = true;
+					}
+				}
+			}
+			found = true;
+		}
+		if (found.length == 0) {
+			msg.reply("unable to find server");
+		} else if (found.length == 1) {
+			dispserver(msg, found[0]);
+		} else {
+			search.addusertoqueue(msg.author.id, msg.channel.id, found, 'name');
+			timer(60, msg.author.id);
+			disppage(msg, 0);
 		}
 	});
 	commands.setrun("log", false, function (msg) {
@@ -99,61 +184,74 @@ function linkcommands () {
 };
 
 bot.on('message', (message) => {
-	/*
-	WORK ON THIS
-	*/
 	var content = '', sections = [], com = '', perms = 0, prefix = '';
 	var temp = [];
 
 	prefix = globals.p(message.guild.id);
-	if (message.content.startsWith(prefix)) {
-		content = message.content.substring(prefix.length);
-		temp = content.split("\n");
-		for (var i = 0; i < temp.length; i++) {
-			sections = sections.concat(temp[i].split(" "));
-		}
-		com = sections[0].toLowerCase();
-		if (sections.length > 1) {
-			sections.splice(0, 1);
-		} else {
-			sections.pop();
-		}
-		perms = globals.getperms(message.author.id);
-		if (perms >= commands.getperms(com)) {
-			if (commands.reqinput(com)) {
-				for (var i = 0; i < sections.length; i++) {
-					if (sections[i] === "" || sections[i] === null || sections[i] === undefined) {
-						sections.splice(i, 1);
-						i--;
-					}
-				}
-				try {
-					if (com === 'test') {
-						commands[com].run(message, content.substring(content.search("\n") + 2));
-					} else {
-						commands[com].run(message, sections.join(" "));
-					}
-				} catch (e) {
-					console.log(e.message);
-					if (e.message === 'invalid usage') {
-						message.reply(" correct usage is " + commands.getusage(com));
-					}
-				}
+
+	if (!runcheck) {
+		if (message.content.startsWith(prefix)) {
+			content = message.content.substring(prefix.length);
+			temp = content.split("\n");
+			for (var i = 0; i < temp.length; i++) {
+				sections = sections.concat(temp[i].split(" "));
+			}
+			com = sections[0].toLowerCase();
+			if (sections.length > 1) {
+				sections.splice(0, 1);
 			} else {
-				if (com === 'help') {
+				sections.pop();
+			}
+			perms = globals.getperms(message.author.id);
+			if (perms >= commands.getperms(com)) {
+				if (commands.reqinput(com)) {
+					for (var i = 0; i < sections.length; i++) {
+						if (sections[i] === "" || sections[i] === null || sections[i] === undefined) {
+							sections.splice(i, 1);
+							i--;
+						}
+					}
 					try {
-						commands[com].run(message, perms, prefix);
+						if (com === 'test') {
+							commands[com].run(message, content.substring(content.search("\n") + 2));
+						} else {
+							commands[com].run(message, sections.join(" "));
+						}
 					} catch (e) {
-						if (e.message === 'invalid usage') {
-							message.reply(" correct usage is " + commands.getusage(com));
+						console.log(e.message);
+						if (e.name === 'invalid usage') {
+							message.reply("correct usage is " + commands.getusage(com));
+						} else {
+							console.log("Error running: " + com);
+							console.log(e.message);
+							message.reply("Invalid input, please try" + 
+								" `.[command] [input]`, or `.help` to see the commands");
 						}
 					}
 				} else {
-					try {
-						commands[com].run(message);
-					}  catch (e) {
-						if (e.message === 'invalid usage') {
-							message.reply(" correct usage is " + commands.getusage(com));
+					if (com === 'help') {
+						try {
+							commands[com].run(message, perms, prefix);
+						} catch (e) {
+							if (e.message === 'invalid usage') {
+								message.reply("correct usage is " + commands.getusage(com));
+							} else {
+								console.log("Error running: " + com);
+								console.log(e.message);
+							}
+						}
+					} else {
+						try {
+							commands[com].run(message);
+						}  catch (e) {
+							if (e.message === 'invalid usage') {
+								message.reply("correct usage is " + commands.getusage(com));
+							}  else {
+								console.log("Error running: " + com);
+								console.log(e.message);
+								message.reply("Invalid input, please try" + 
+									" `.[command] [input]`, or `.help` to see the commands");
+							}
 						}
 					}
 				}
@@ -161,6 +259,42 @@ bot.on('message', (message) => {
 		}
 	}
 });
+
+function runcheck (msg) {
+	var parts = [], page = 0, input = 0, obj = {};
+	if (search.verifysearchchannel(msg.author.id)) {
+		if (parseInt(msg.content) == NaN) {
+			parts = msg.content.split(" ");
+			if (parts(0) == 'page') {
+				page = parseInt(parts(1));
+				if (page == NaN || page == null || page == undefined) {
+					msg.reply("Incorrect usage, try `page [page number]`");
+				} else {
+					if (msg.deletable) {
+						msg.delete();
+					}
+					disppage(msg, page);
+				}
+			}
+			return true;
+		} else {
+			input = parseInt(msg.content);
+			if (input == NaN || input == null || input == undefined) {
+				msg.reply("Incorrect usage, try `[server index]`");
+			} else {
+				if (msg.deletable) {
+					msg.delete();
+				}
+				obj = search.getusersearch(msg.author.id);
+				if (obj != null) {
+					dispserver(msg, obj.res[input]);
+				}
+			}
+			return true;
+		}
+	}
+	return false;
+};
 
 function dispserver (msg, index) {
 	var embedobj = {}, server = servers.server(index), lim = 0;
@@ -207,8 +341,110 @@ function dispserver (msg, index) {
 		"value" : str2,
 		"inline" : false
 	});
-	msg.channel.send({embed: embedobj});
-}
+	bot.fetchlink(server.link).then((invite) => {
+		msg.channel.send({embed: embedobj}).then((msg) => {
+			msgtimer(60, msg);
+		});
+	}).catch(e => {
+		embedobj.description = "Dead Invite Link";
+		search.deadlistserver(index);
+		obj.deadlistserver(index);
+	});
+};
+
+function disppage (msg, page) {
+	var lim = 10, user = msg.author.id, obj = search.getusersearch(user);
+	var min = page * lim, max = min + lim;
+	var maxpage = Math.floor(obj.res.length / lim);
+	var server = {};
+
+	if (page > maxpage) {
+		page = maxpage;
+		min = page * lim;
+		max = obj.res.length - min;
+	} else if (page == maxpage) {
+		min = page * lim;
+		max = obj.res.length - min;
+	}
+	embedobj = {
+		"title" : "Severs Found",
+		"description" : "Type `[Number]` For server info or `Page [Number]` for the next page",
+		"color" : 0x0000FF,
+		"fields" : []
+	}
+	for (var i = min; i <= max; i++) {
+		if (obj.type == 'name') {
+			server = servers.server(obs.res[i]);
+			embedobj.fields.push({
+				"name" : i + " - " + server.name,
+				"value" : "ID: " + server.id,
+				"inline" : false
+			});
+		} else {
+			server = servers.server(obs.res[i].index);
+			embedobj.fields.push({
+				"name" : i + " - " + server.name,
+				"value" : "Global Matches: " + obj.res[i].managed + 
+				"\nLocal Matches: " + obj.res[i].unmanaged,
+				"inline" : false
+			});
+		}
+	}
+	msg.channel.send({embed: embedobj}).then((msg) => {
+		search.updateuser(user, msg, true, page);
+	});
+};
+
+function timer (seconds, id) {
+	return new Promise(function(resolve, reject) {
+		var time = seconds * 1000, userid = id;
+		var obj = {};
+
+		search.timeadd(userid);
+		setTimeout(function(userid) {
+			if (search.timesub(userid)) {
+				obj = search.getusersearch(userid);
+				try {
+					if (obj.list.deletable) {
+						obj.list.delete();
+					}
+				} catch (e) {
+					console.log(e.message);
+				}
+				try {
+					if (obj.msg.deletable) {
+						obj.msg.delete();
+					}
+				} catch (e) {
+					console.log(e.message);
+				}
+				console.log("Timer Done");
+				search.removeuser(userid);
+			}
+			resolve("Solved");
+		});
+	});
+};
+
+function msgtimer (seconds, msg) {
+	return new Promise(function(resolve, reject) {
+		var time = seconds * 1000;
+
+		setTimeout(function() {
+			try {
+				if (msg.deletable) {
+					msg.delete().then(() => {
+						console.log("message " + msg.id + " deleted");
+					});
+				}
+			} catch (e) {
+				console.log(e.message);
+			}
+			console.log("Deleting message");
+			resolve("Solved");
+		});
+	});
+};
 
 function defaultMessageEvent(message) {
 	/*
@@ -572,58 +808,6 @@ function defaultMessageEvent(message) {
 	}
 }
 
-function altMessageEvent(message) {
-	if (message.content.length > 0) {
-		if (message.author.id == aId && message.channel.id == cId) {
-			if (parseInt(message.content) > 0 && parseInt(message.content) <= arrF.length) {
-				disp(message, parseInt(message.content) - 1, true);
-			} else if (tolc(message.content) === "all") {
-				var limit = 10;
-				if (arrF.length <= limit) {
-					limit = arrF.length;
-				}
-				for (var i = 0; i < limit; i++) {
-					disp(message, i, true);
-				}
-			} else if (tolc(message.content) === "all global" && shg) {
-				var limit = 10, counter = 0;
-				if (arrF.length <= limit) {
-					limit = arrF.length;
-				}
-				for (var i = 0; i < arrF.length && counter <= limit; i++) {
-					if (arrF[i].hg) {
-						disp(message, i, true);
-						counter++;
-					}
-				}
-				if (counter == 0) {
-					message.reply("No Global Found");
-				}
-			} else {
-				message.reply("Invalid Input");
-			}
-			if (message.deletable) {
-				message.delete();
-			}
-			if (msgdelete.deletable) {
-				msgdelete.delete();
-			}
-			arrF = [];
-			aId = "";
-			cId = "";
-			shg = false;
-			if (!dfm) {
-				bot.removeListener('message', altMessageEvent);
-				bot.on('message', defaultMessageEvent);
-				dfm = true;
-			}
-		} else {
-			//message.reply("Wait, bot in use");
-			//defaultMessageEvent(message);
-		}
-	}
-}
-
 function writejsonfile() {
 	/*
 	* WRITE AND STORE JSON DATA TO FILE
@@ -738,295 +922,6 @@ function writesettingsjsonfile() {
 	});
 }
 
-function searchByServer(msg, input, isId) {
-	var found = false;
-
-	for (var i = 0; i < arr.length; i++) {
-		if (isId) {
-			if (arr[i].id == input) {
-				found = true;
-				arrF.push(arr[i]);
-			}
-		} else {
-			if (strMatchStrict(arr[i].name, input)) {
-				found = true;
-				arrF.push(arr[i]);
-			}
-		}
-	}
-	//console.log(input + " " + found + ": " + arrF.length);
-	if (found) {
-		if (arrF.length == 1) {
-			disp(msg, 0, true);
-			arrF = [];
-		} else if (arrF.length > 1) {
-			aId = msg.author.id;
-			cId = msg.channel.id;
-			msg.reply("Found Servers: " + arrF.length + "\n Enter `[number]` or `all` (Limit for all 10)").then((rmsg) => {
-				msgdelete = rmsg;
-			});
-			if (dfm) {
-				bot.removeListener('message', defaultMessageEvent);
-				dfm = false;
-				bot.on('message', altMessageEvent);
-				timer(30).then(function() {
-					if (timecount == 0) {
-						if(!dfm) {
-							bot.removeListener('message', altMessageEvent);
-							bot.on('message', defaultMessageEvent);
-							dfm = true;
-						}
-						arrF = [];
-						aId = "";
-						cId = "";
-					}
-				});
-			}
-		}
-	} else {
-		msg.reply("Could Not Find Server");
-	}
-}
-
-function searchByEmote(msg, input, all = false, aglobal = false) {
-	var found = false, hg = false;
-	var temp = {}, emotes = [];
-	var patt = /<:[A-Za-z0-9_]{2,}:\d+>/
-
-	//<:[A-Za-z0-9_]{2,}:\\d+>
-	if (patt.test(input)) {
-		console.log("Is Emote")
-		input = input.replace(patt, /:[A-Za-z0-9_]{2,}:/.exec(input));
-		console.log("New Str: " + input)
-	}
-	for (var i = 0; i < arr.length; i++) {
-		for (var j = 0; j < arr[i].emotes.managed.length || j < arr[i].emotes.unmanaged.length; j++) {
-			if (j < arr[i].emotes.managed.length) {
-				if (strMatchStrict(arr[i].emotes.managed[j], input)) {
-					found = true;
-					hg = true;
-					emotes.push({
-						"name" : arr[i].emotes.managed[j],
-						"global" : true
-					});
-				}
-			}
-			if (j < arr[i].emotes.unmanaged.length) {
-				if (strMatchStrict(arr[i].emotes.unmanaged[j], input)) {
-					found = true;
-					emotes.push({
-						"name" : arr[i].emotes.unmanaged[j],
-						"global" : false
-					});
-				}
-			}
-		}
-		if (found) {
-			temp = {
-				"id" : arr[i].id,
-				"name" : arr[i].name,
-				"link" : arr[i].link,
-				"icon" : arr[i].icon,
-				"emotes" : emotes,
-				"hg" : hg
-			};
-			arrF.push(temp);
-			emotes = [];
-			temp = {};
-			found = false;
-		}
-		hg = false;
-	}
-	//console.log(input + " " + found + ": " + arrF.length);
-	if (arrF.length > 0) {
-		if (arrF.length == 1) {
-			shg = true;
-			disp(msg, 0, true);
-			arrF = [];
-			shg = false;
-		} else if (arrF.length > 1) {
-			if (!all && !aglobal) {
-				aId = msg.author.id;
-				cId = msg.channel.id;
-				shg = true;
-				msg.reply("Found Servers: " + arrF.length + "\n Enter `[number]` or `all` or `all global` (Limit for all 10)").then((rmsg) => {
-					msgdelete = rmsg;
-				});
-				bot.removeListener('message', defaultMessageEvent);
-				dfm = false;
-				bot.on('message', altMessageEvent);
-				timer(30).then(function() {
-					if (timecount == 0) {
-						if(!dfm) {
-							bot.removeListener('message', altMessageEvent);
-							bot.on('message', defaultMessageEvent);
-							dfm = true;
-						}
-						arrF = [];
-						aId = "";
-						cId = "";
-						shg = false;
-					}
-				});
-			} else if (all && !aglobal) {
-				var limit = 10;
-				if (arrF.length <= limit) {
-					limit = arrF.length;
-				}
-				shg = true;
-				for (var i = 0; i < limit; i++) {
-					disp(msg, i, true);
-				}
-				shg = false;
-			} else {
-				var limit = 10, counter = 0;
-				if (arrF.length <= limit) {
-					limit = arrF.length;
-				}
-				shg = true;
-				for (var i = 0; i < arrF.length && counter <= limit; i++) {
-					if (arrF[i].hg) {
-						disp(msg, i, true);
-						counter++;
-					}
-				}
-				shg = false;
-				if (counter == 0) {
-					msg.reply("No Global Found");
-				}
-			}
-		}
-	} else {
-		msg.reply("Could Not Find Server");
-	}
-}
-
-function disp(message, index, altarr = false) {
-	var id = "", name = "", link = "", icon = "";
-	var embedobj = "", temp = "", canDisp = false
-
-	if (!altarr && arr.length > 0) {
-		id = arr[index].id;
-		name = arr[index].name;
-		link = arr[index].link;
-		icon = arr[index].icon;
-		canDisp = true;
-	}
-	if (altarr && arrF.length > 0) {
-		id = arrF[index].id;
-		name = arrF[index].name;
-		link = arrF[index].link;
-		icon = arrF[index].icon;
-		canDisp = true;
-	}
-	if (canDisp) {
-		if (link == '') {
-			link = "Request Link";
-		}
-		embedobj = {
-			"title" : name,
-			"description" : link,
-			"color" : 0x0000FF,
-			"thumbnail" : {
-				"url" : icon,
-				"height" : 50,
-				"width" : 50
-			},
-			"fields" : []
-		}
-		if (!shg) {
-			message.channel.send({embed: embedobj});
-		} else {
-			if (arrF[index].emotes.length < 6) {
-				for (var i = 0; i < arrF[index].emotes.length; i++) {
-					if (arrF[index].emotes[i].global) {
-						temp = "Global";
-					} else {
-						temp = "Local";
-					}
-					embedobj.fields.push({
-						"name" : arrF[index].emotes[i].name,
-						"value" : temp,
-						"inline" : true
-					});
-				}
-			} else {
-				if (arrF[index].hg) {
-					temp = "Has Global Match";
-				} else {
-					temp = "No Global Match";
-				}
-				embedobj.fields.push({
-					"name" : "Over 6 Matches",
-					"value" : temp
-				});
-			}
-			message.channel.send({embed: embedobj});
-		}
-	} else {
-		message.channel.send("No Servers Stored");
-	}
-}
-
-function strMatch(s1, s2) {
-	/*
-	* STRING MATCHING
-	* CHECKS IF THE SHORTER STRING APPEARS IN THE LONGER STRING
-	*/
-	var short = "", long = "", len = 0;
-
-	if (s1.length >= s2.length) {
-		short = tolc(s2);
-		long = tolc(s1);
-	} else {
-		short = tolc(s1);
-		long = tolc(s2);
-	}
-	if (short.length > 0) {
-		len = long.length - short.length + 1;
-		for (var i = 0; i < len; i++) {
-			if (short == long.substring(i, i + short.length)) {
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-function strMatchStrict(s1, s2) {
-	/*
-	* STRICT STRING MATCHING
-	* CHECKS IF S2 IS PRESENT IN S1
-	*/
-	var long = tolc(s1);
-	var short = tolc(s2);
-	var len = 0;
-
-	if (s1.length < s2.length) {
-		return false;
-	}
-	if (short.length > 0) {
-		len = long.length - short.length + 1;
-		for (var i = 0; i < len; i++) {
-			if (short == long.substring(i, i + short.length)) {
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-function tolc(str) {
-	var temp = 0;
-	for (var i = 0; i < str.length; i++) {
-		if (str[i] >= 'A' && str[i] <= 'Z') {
-			temp = (str[i].charCodeAt(0) - 65) + 97;
-			str = str.substring(0, i) + String.fromCharCode(temp) + str.substring(i + 1, str.length);
-		}
-	}
-	return str;
-}
-
 function verifyUser(input) {
 	try {
 		if (config.owner == input) {
@@ -1070,16 +965,6 @@ function verifygc(input) {
 		console.log(e.message);
 	}
 	return false;
-}
-
-function logGlobals() {
-	console.log("Servers: " + arr.length);
-	console.log("Found Array: " + arrF.length);
-	console.log("Default Event: " + dfm);
-	console.log("Stored User ID: " + aId);
-	console.log("Stored Channel ID: " + cId);
-	console.log("Stored Guild ID: " + gId);
-	console.log("Guild ID Not Empty: " + (gId != ''));
 }
 
 bot.login(config.token); //Bot Token

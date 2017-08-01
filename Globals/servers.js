@@ -1,9 +1,10 @@
 var serverfunc = (function () {
 	var servers = [], obj = {};
-	var sorted = true;
+	var deadlist = [], sorted = true;
 	var fs = require('fs');
 
 	readjsonfile();
+	readdeadlistfile();
 	obj.count = function () {
 		return servers.length;
 	};
@@ -14,6 +15,14 @@ var serverfunc = (function () {
 			return null;
 		}
 		return servers[index];
+	};
+	obj.prop = function (index, prop) {
+		if (index >= servers.length && servers.length != 0) {
+			index = servers.length - 1;
+		} else if (servers.length == 0 || index < 0) {
+			return null;
+		}
+		return servers[index][prop];
 	};
 	obj.addserver = function (server) {
 		var large = 0;
@@ -110,13 +119,10 @@ var serverfunc = (function () {
 		var index = 0;
 
 		if (typeof(serverlist[0].emotes.managed[0]) === 'object') {
-			console.log("new version not saved!!!!!!!");
 			servers = serverlist;
+			sorted = false;
 		}
 		for (var i = 0; i < serverlist.length; i++) {
-			if (serverlist[i].id == 214249708711837696) {
-				console.log("Mum's house is here");
-			}
 			temp = {
 				"id" : serverlist[i].id,
 				"name" : serverlist[i].name,
@@ -168,20 +174,19 @@ var serverfunc = (function () {
 		}
 	};
 	obj.findbyid = function (id) {
-		var pos = 0, min = 0, lim = servers.length - 1;
+		var pos = 0, min = 0, max = servers.length - 1;
 		var count = 0, e = {};
 
-		if(lim === -1) {
+		if(max === -1) {
 			throw "first";
 		}
 		if (!sorted) {
 			//sort
-			quicksort();
+			bublesort();
 			sorted = true;
 		}
-		//pos = Math.floor(servers.length/2);
 		while (count < 30) {
-			if (lim < min) {
+			if (max < min) {
 				if (servers[pos].id < id) {
 					throw pos;
 				} else if (servers[pos].id > id) {
@@ -194,44 +199,52 @@ var serverfunc = (function () {
 					throw e;
 				}
 			}
-			pos = Math.floor((lim + min)/2);
-			if (id === 214249708711837696) {
-				console.log(min + "<" + pos + "<" + lim);
-				console.log(servers[pos].id === id);
-				console.log(servers[pos].id > id);
-				console.log(servers[pos].id < id);
-			}
-			if (servers[pos].id === id) {
+			pos = Math.floor((max + min)/2);
+			if (servers[pos].id == id) {
 				return pos;
 			} else if (servers[pos].id < id) {
 				min = pos + 1;
 			} else {
-				lim = pos - 1;
+				max = pos - 1;
 			}
 			count++;
 		}
 	};
-	obj.write = writejsonfile;
-	function quicksort (min = 0, max = (servers.length - 1)) {
-		var pointer = min, temp = {};
-
-		if ((max - min) < 1) {
-			return 1;
-		}
-		for (var i = min + 1; i <= max; i++) {
-			if (servers[pointer].id > servers[i].id) {
-				temp = servers[i];
-				servers[i] = servers[pointer];
-				servers[pointer] = temp;
-				pointer = i;
+	obj.deadlistserver = function (index) {
+		if (index >= servers.length || index < 0) {
+			throw {
+				"name" : "Invalid index",
+				"message" : "Index does not exist"
 			}
+		} else {
+			deadlist.push(servers[index]);
+			servers.splice(index, 1);
+			writedeadlistfile();
 		}
-		if ((pointer - min) >= 2) {
-			quicksort(min, pointer - 1);
+	};
+	obj.getdeadlist = function () {
+		if (deadlist.length > 0) {
+			return deadlist;
+		} else {
+			return null;
 		}
-		if ((max - pointer) >= 2) {
-			quicksort(pointer + 1, max);
-		}
+	};
+	obj.write = writejsonfile;
+	function bublesort () {
+		var swap = false, counter = 0, temp = {};
+
+		do {
+			swap = false;
+			for (var i = 0; i < servers.length; i++) {
+				if (servers[i].id > servers[i + 1].id) {
+					temp = servers[i];
+					servers[i] = servers[i + 1];
+					servers[i + 1] = temp;
+					swap = true;
+				}
+			}
+			counter++;
+		} while (swap && counter < servers.length);
 	};
 	function writejsonfile() {
 		/*
@@ -254,6 +267,29 @@ var serverfunc = (function () {
 			}
 			console.log("Servers loaded!");
 			obj.fillservers(JSON.parse(data));
+		});
+	};
+	function writedeadlistfile() {
+		/*
+		* WRITE AND STORE SERVER DATA TO FILE
+		*/
+		fs.writeFile("Files/DeadList.json", JSON.stringify(deadlist), function(err) {
+			if(err) {
+				return console.log(err.message);
+			}
+			console.log("Servers saved!");
+		});
+	};
+	function readdeadlistfile() {
+		/*
+		* READ AND STORE SERVER DATA FROM A FILE
+		*/
+		fs.readFile("Files/DeadList.json", "utf8", function read(err, data) {
+			if(err) {
+				return console.log(err.message);
+			}
+			console.log("Servers loaded!");
+			deadlist = JSON.parse(data);
 		});
 	};
 	return obj;

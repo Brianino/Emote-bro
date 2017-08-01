@@ -1,7 +1,7 @@
 var globalsfn = (function () {
 	var globals = {}, prefix = {};
 	var blacklist = [], perms = {};
-	var owner = "";
+	var msgstore = [], owner = "";
 	var fs = require('fs');
 
 	readsettingsjsonfile();
@@ -120,6 +120,15 @@ var globalsfn = (function () {
 		} else {
 			throw 'Owner already set';
 		}
+	};
+	globals.addmsg = function (msg) {
+		var id = msgstore.length;
+
+		msgstore.push({
+			"id" : id,
+			"msg" : msg
+		});
+		return id;
 	};
 	function readsettingsjsonfile() {
 		/*
