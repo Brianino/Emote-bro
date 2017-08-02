@@ -159,6 +159,68 @@ function linkcommands () {
 			disppage(msg, 0);
 		}
 	});
+	commands.setrun("add", true, function (msg, str) {
+		var parts = str.split(" "), id = parseInt(parts[0]);
+		var lvl = 0;
+
+		//run getuser function, (get user id from mention or name)
+		//only grab user from list of server members
+		if (id == NaN) {
+			throw {
+				"name" : "invalid usage",
+				"message" : "invalid id: " + parts[0]
+			}
+		}
+		if (parts.length > 1) {
+			lvl = parseInt(parts[1]);
+			if (lvl == NaN) {
+				throw {
+					"name" : "invalid usage",
+					"message" : "invalid amount: " + parts[1]
+				}
+			}
+		} else {
+			lvl = 1;
+		}
+		globals.increaseperms(id, lvl);
+	});
+	commands.setrun("remove", true, function (msg, str) {
+		var parts = str.split(" "), id = parseInt(parts[0]);
+		var lvl = 0;
+
+		if (id == NaN) {
+			throw {
+				"name" : "invalid usage",
+				"message" : "invalid id: " + parts[0]
+			}
+		}
+		if (parts.length > 1) {
+			lvl = parseInt(parts[1]);
+			if (lvl == NaN) {
+				throw {
+					"name" : "invalid usage",
+					"message" : "invalid amount: " + parts[1]
+				}
+			}
+		} else {
+			lvl = 1;
+		}
+		globals.removeperms(id, lvl);
+	});
+	commands.setrun("prefix", true, function (msg, str) {
+		if (str.length > 0) {
+			if (!str.includes(" ")) {
+				if (!str.includes("\n") && !str.includes("\r")) {
+					globals.newprefix(msg.auid.id, str);
+					return null;
+				}
+			}
+		}
+		throw {
+			"name" : "invalid usage",
+			"message" : "invalid prefix: " + str
+		}
+	})
 	commands.setrun("log", false, function (msg) {
 		try {
 			console.log("Prefix: " + globals.p(msg.guild.id));
@@ -220,7 +282,7 @@ bot.on('message', (message) => {
 					} catch (e) {
 						console.log(e.message);
 						if (e.name === 'invalid usage') {
-							message.reply("correct usage is " + commands.getusage(com));
+							message.reply("correct usage is `" + commands.getusage(com) + "`");
 						} else {
 							console.log("Error running: " + com);
 							console.log(e.message);
@@ -234,7 +296,7 @@ bot.on('message', (message) => {
 							commands[com].run(message, perms, prefix);
 						} catch (e) {
 							if (e.message === 'invalid usage') {
-								message.reply("correct usage is " + commands.getusage(com));
+								message.reply("correct usage is `" + commands.getusage(com) + "`");
 							} else {
 								console.log("Error running: " + com);
 								console.log(e.message);
@@ -245,7 +307,7 @@ bot.on('message', (message) => {
 							commands[com].run(message);
 						}  catch (e) {
 							if (e.message === 'invalid usage') {
-								message.reply("correct usage is " + commands.getusage(com));
+								message.reply("correct usage is `" + commands.getusage(com) + "`");
 							}  else {
 								console.log("Error running: " + com);
 								console.log(e.message);

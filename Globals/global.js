@@ -6,7 +6,7 @@ var globalsfn = (function () {
 
 	readsettingsjsonfile();
 	readchanneljsonfile();
-	globals.newprefix = function (pref, guild) {
+	globals.newprefix = function (guild, pref) {
 		if (pref != null && pref != '') {
 			try {
 				prefix[guild] = pref;
@@ -120,15 +120,6 @@ var globalsfn = (function () {
 		} else {
 			throw 'Owner already set';
 		}
-	};
-	globals.addmsg = function (msg) {
-		var id = msgstore.length;
-
-		msgstore.push({
-			"id" : id,
-			"msg" : msg
-		});
-		return id;
 	};
 	function readsettingsjsonfile() {
 		/*
