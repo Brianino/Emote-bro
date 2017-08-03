@@ -72,7 +72,7 @@ var searches = (function () {
 		}
 		return false;
 	};
-	obj.verifysearchchannel = function (id, channel) {
+	obj.verifychannel = function (id, channel) {
 		for (var i = 0; i < userqueue.length; i++) {
 			if (userqueue[i].id === id) {
 				if (userqueue[i].channel === channel) {
@@ -140,3 +140,5 @@ var searches = (function () {
 	};
 	return obj;
 })();
+
+module.exports = searches;

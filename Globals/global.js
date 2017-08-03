@@ -1,7 +1,7 @@
 var globalsfn = (function () {
 	var globals = {}, prefix = {};
 	var blacklist = [], perms = {};
-	var msgstore = [], owner = "";
+	var msgstore = [], owner = 0;
 	var fs = require('fs');
 
 	readsettingsjsonfile();
@@ -59,10 +59,10 @@ var globalsfn = (function () {
 		}
 		return true;
 	};
-	globals.increaseperms = function (userid, amount) {
+	globals.increaseperms = function (userid, guild, amount) {
 		var level = 0;
 		try {
-			level = perms[userid];
+			level = perms[userid][guild];
 		} catch (e) {
 			console.log(e.message);
 			level = 0;
@@ -73,16 +73,16 @@ var globalsfn = (function () {
 			level = level + amount;
 		}
 		try {
-			perms[userid] = level;
+			perms[userid][guild] = level;
 			console.log("Updated user " + userid + " to " + level);
 		} catch (e) {
 			console.log(e.message);
 		}
 	};
-	globals.removeperms = function (userid, amount) {
+	globals.removeperms = function (userid, guild, amount) {
 		var level = 0;
 		try {
-			level = perms[userid];
+			level = perms[userid][guild];
 		} catch (e) {
 			console.log(e.message);
 			level = 0;
@@ -93,19 +93,19 @@ var globalsfn = (function () {
 			level = level - amount;
 		}
 		try {
-			perms[userid] = level;
+			perms[userid][guild] = level;
 			console.log("Updated user " + userid + " to " + level);
 		} catch (e) {
 			console.log(e.message);
 		}
 	};
-	globals.getperms = function (userid) {
+	globals.getperms = function (userid, guild) {
 		var perms = 0;
 		if (userid === owner) {
 			return 10;
 		}
 		try {
-			perms = perms[userid];
+			perms = perms[userid][guild];
 			if (perms === undefined) {
 				perms = 0;
 			}
@@ -115,7 +115,7 @@ var globalsfn = (function () {
 		return perms;
 	};
 	globals.setowner = function (userid) {
-		if (owner === "") {
+		if (owner === 0) {
 			owner = userid;
 		} else {
 			throw 'Owner already set';

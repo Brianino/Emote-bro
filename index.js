@@ -3,7 +3,7 @@ const config = require('./config.js');
 const commands = require('./commands.js');
 const globals = require('./Globals/global.js');
 const servers = require('./Globals/servers.js');
-const search = require('./Globals/searches.js');
+const searchqueue = require('./Globals/searches.js');
 
 var arr = [], arrF = [], dfm = true, timecount = [];
 var cId = '', aId = '', shg = false, prefix = '';
@@ -12,25 +12,12 @@ var fs = require('fs');
 
 const bot = new Discord.Client();
 
-function timer(seconds, timer) {
-	return new Promise(function(resolve, reject) {
-		var time = seconds * 1000;
-		timecount++;
-		setTimeout(function() {
-			if (timecount == 1) {
-				timecount--;
-				console.log("Timer Done");
-			} else {
-				timecount--;
-				console.log("More recent Timer Active");
-			}
-			resolve("Solved");
-		}, time);
-	});
-};
-
 bot.on('ready', () => {
-	globals.setowner(config.owner);
+	try {
+		globals.setowner(config.owner);
+	} catch (e) {
+		console.log(e.message);
+	}
 	linkcommands();
 	console.log("Ready");
 });
@@ -98,7 +85,7 @@ function linkcommands () {
 		} else if (found.length == 1) {
 			dispserver(msg, found[0]);
 		} else {
-			search.addusertoqueue(msg.author.id, msg.channel.id, found, 'name');
+			searchqueue.addusertoqueue(msg.author.id, msg.channel.id, found, 'name');
 			timer(60, msg.author.id);
 			disppage(msg, 0);
 		}
@@ -154,7 +141,7 @@ function linkcommands () {
 		} else if (found.length == 1) {
 			dispserver(msg, found[0]);
 		} else {
-			search.addusertoqueue(msg.author.id, msg.channel.id, found, 'name');
+			searchqueue.addusertoqueue(msg.author.id, msg.channel.id, found, 'name');
 			timer(60, msg.author.id);
 			disppage(msg, 0);
 		}
@@ -182,7 +169,7 @@ function linkcommands () {
 		} else {
 			lvl = 1;
 		}
-		globals.increaseperms(id, lvl);
+		globals.increaseperms(id, msg.guild.id,lvl);
 	});
 	commands.setrun("remove", true, function (msg, str) {
 		var parts = str.split(" "), id = parseInt(parts[0]);
@@ -205,7 +192,7 @@ function linkcommands () {
 		} else {
 			lvl = 1;
 		}
-		globals.removeperms(id, lvl);
+		globals.removeperms(id, msg.guild.id,lvl);
 	});
 	commands.setrun("prefix", true, function (msg, str) {
 		if (str.length > 0) {
@@ -225,7 +212,7 @@ function linkcommands () {
 		try {
 			console.log("Prefix: " + globals.p(msg.guild.id));
 			console.log("Servers: " + servers.count());
-			console.log("Search In Progress: " + search.searching());
+			console.log("Search In Progress: " + searchqueue.searching());
 		} catch (e) {
 			console.log(e.message);
 		}
@@ -250,8 +237,8 @@ bot.on('message', (message) => {
 	var temp = [];
 
 	prefix = globals.p(message.guild.id);
-
-	if (!runcheck) {
+	console.log(message.content);
+	if (!runcheck(message)) {
 		if (message.content.startsWith(prefix)) {
 			content = message.content.substring(prefix.length);
 			temp = content.split("\n");
@@ -264,7 +251,7 @@ bot.on('message', (message) => {
 			} else {
 				sections.pop();
 			}
-			perms = globals.getperms(message.author.id);
+			perms = globals.getperms(message.author.id, message.guild.id);
 			if (perms >= commands.getperms(com)) {
 				if (commands.reqinput(com)) {
 					for (var i = 0; i < sections.length; i++) {
@@ -282,12 +269,10 @@ bot.on('message', (message) => {
 					} catch (e) {
 						console.log(e.message);
 						if (e.name === 'invalid usage') {
-							message.reply("correct usage is `" + commands.getusage(com) + "`");
+							message.reply("correct usage is `" + prefix + commands.getusage(com) + "`");
 						} else {
 							console.log("Error running: " + com);
 							console.log(e.message);
-							message.reply("Invalid input, please try" + 
-								" `.[command] [input]`, or `.help` to see the commands");
 						}
 					}
 				} else {
@@ -296,7 +281,7 @@ bot.on('message', (message) => {
 							commands[com].run(message, perms, prefix);
 						} catch (e) {
 							if (e.message === 'invalid usage') {
-								message.reply("correct usage is `" + commands.getusage(com) + "`");
+								message.reply("correct usage is `" + prefix + commands.getusage(com) + "`");
 							} else {
 								console.log("Error running: " + com);
 								console.log(e.message);
@@ -307,12 +292,12 @@ bot.on('message', (message) => {
 							commands[com].run(message);
 						}  catch (e) {
 							if (e.message === 'invalid usage') {
-								message.reply("correct usage is `" + commands.getusage(com) + "`");
+								message.reply("correct usage is `" + prefix + commands.getusage(com) + "`");
 							}  else {
 								console.log("Error running: " + com);
 								console.log(e.message);
 								message.reply("Invalid input, please try" + 
-									" `.[command] [input]`, or `.help` to see the commands");
+									" `.[command] <input>`, or `.help` to see the commands");
 							}
 						}
 					}
@@ -324,7 +309,11 @@ bot.on('message', (message) => {
 
 function runcheck (msg) {
 	var parts = [], page = 0, input = 0, obj = {};
-	if (search.verifysearchchannel(msg.author.id)) {
+
+	if (msg.content.length < 1) {
+		return false;
+	}
+	if (searchqueue.verifychannel(msg.author.id, msg.channel.id)) {
 		if (parseInt(msg.content) == NaN) {
 			parts = msg.content.split(" ");
 			if (parts(0) == 'page') {
@@ -347,7 +336,7 @@ function runcheck (msg) {
 				if (msg.deletable) {
 					msg.delete();
 				}
-				obj = search.getusersearch(msg.author.id);
+				obj = searchqueue.getusersearch(msg.author.id);
 				if (obj != null) {
 					dispserver(msg, obj.res[input]);
 				}
@@ -409,13 +398,13 @@ function dispserver (msg, index) {
 		});
 	}).catch(e => {
 		embedobj.description = "Dead Invite Link";
-		search.deadlistserver(index);
+		searchqueue.deadlistserver(index);
 		obj.deadlistserver(index);
 	});
 };
 
 function disppage (msg, page) {
-	var lim = 10, user = msg.author.id, obj = search.getusersearch(user);
+	var lim = 10, user = msg.author.id, obj = searchqueue.getusersearch(user);
 	var min = page * lim, max = min + lim;
 	var maxpage = Math.floor(obj.res.length / lim);
 	var server = {};
@@ -453,7 +442,7 @@ function disppage (msg, page) {
 		}
 	}
 	msg.channel.send({embed: embedobj}).then((msg) => {
-		search.updateuser(user, msg, true, page);
+		searchqueue.updateuser(user, msg, true, page);
 	});
 };
 
@@ -462,10 +451,10 @@ function timer (seconds, id) {
 		var time = seconds * 1000, userid = id;
 		var obj = {};
 
-		search.timeadd(userid);
+		searchqueue.timeadd(userid);
 		setTimeout(function(userid) {
-			if (search.timesub(userid)) {
-				obj = search.getusersearch(userid);
+			if (searchqueue.timesub(userid)) {
+				obj = searchqueue.getusersearch(userid);
 				try {
 					if (obj.list.deletable) {
 						obj.list.delete();
@@ -481,7 +470,7 @@ function timer (seconds, id) {
 					console.log(e.message);
 				}
 				console.log("Timer Done");
-				search.removeuser(userid);
+				searchqueue.removeuser(userid);
 			}
 			resolve("Solved");
 		});

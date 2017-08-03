@@ -25,6 +25,7 @@ commands.reqinput = function (com) {
 	try {
 		return this[com].reqinput;
 	} catch (e) {
+		return false;
 		//console.log(e.message);
 	}
 };
