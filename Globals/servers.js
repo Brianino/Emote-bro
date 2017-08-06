@@ -16,6 +16,101 @@ var serverfunc = (function () {
 		}
 		return servers[index];
 	};
+	obj.updateserver = function (id, prop, input) {
+		var index = 0, emotearr = [], isdeadlist = false;
+		var found = false, counter = 0, temp = {};
+		var pattD = /(https?:\/\/)?discord\.gg\/[A-Za-z0-9]+/;
+		var pattI = /https?:\/\/cdn\.discordapp\.com\/icons\/[A-Za-z0-9]+\/[A-Za-z0-9]+/;
+
+		//https://cdn.discordapp.com/icons
+		try {
+			index = obj.findbyid(id);
+			found = true;
+		} catch (e) {
+			if (typeof(e) === 'number') {
+				while (counter < deadlist.length && !found) {
+					if (deadlist[counter].id == id) {
+						found = true;
+						isdeadlist = true;
+						index = counter;
+					}
+					counter++;
+				}
+			}
+		}
+		if (!found) {
+			throw {
+				"name" : "server not found",
+				"message" : "could not find server: " + id
+			};
+		}
+		if (prop === 'link') {
+			//check for discord.gg
+			if (!pattD.test(input)) {
+				throw {
+					"name" : "invalid link",
+					"message" : input + " is not a valid discord link"
+				};
+			}
+		} else if (prop === 'icon') {
+			//check for https
+			if (!pattI.test(input)) {
+				throw {
+					"name" : "invalid link",
+					"message" : input + " is not a valid icon link"
+				};
+			}
+		}
+		if (prop === 'name' || prop === 'link' || prop === 'icon' || prop === 'linkreq') {
+			try {
+				if (!isdeadlist) {
+					servers[index][prop] = input;
+				} else {
+					deadlist[index][prop] = input;
+					if (prop === 'link') {
+						temp = deadlist[index];
+						deadlist.splice(index, 1);
+						obj.addserver(temp);
+					}
+				}
+			} catch (e) {
+				console.log(e.message);
+			}
+		} else if (prop === 'managed' || prop === 'unmanaged') {
+			emotearr = checkemoteinput(input);
+			if (!isdeadlist) {
+				servers[index].emotes[prop] = emotearr;
+			} else {
+				deadlist[index].emotes[prop] = emotearr;
+			}
+		} else {
+			throw {
+				"name" : "invalid server property",
+				"message" : prop + " is not an accessable property"
+			};
+		}
+	};
+	obj.getprops = function () {
+		return [{
+			"prop" : "name",
+			"type" : "text"
+		}, {
+			"prop" : "link",
+			"type" : "discord.gg link"
+		}, {
+			"prop" : "icon",
+			"type" : "http link"
+		}, {
+			"prop" : "linkreq",
+			"type" : "true/false"
+		}, {
+			"prop" : "managed",
+			"type" : "global emotes (separate with space)"
+		}, {
+			"prop" : "unmanaged",
+			"type" : "local emotes (separate with space)"
+		}]
+	}
 	obj.prop = function (index, prop) {
 		if (index >= servers.length && servers.length != 0) {
 			index = servers.length - 1;
@@ -24,28 +119,46 @@ var serverfunc = (function () {
 		}
 		return servers[index][prop];
 	};
+	obj.checkprop = function (prop) {
+		for (var name in servers[0]) {
+			if (name === prop) {
+				return true;
+			} else if (typeof(servers[0][prop]) === 'object' || typeof(servers[0][prop]) === 'array') {
+				return nestedcheckprop(servers[0][prop]);
+			}
+		}
+	};
 	obj.addserver = function (server) {
-		var large = 0;
+		var large = 0, id = 0;
 		var temp = {
-			"id" : "",
+			"id" : 0,
 			"name" : "",
 			"link" : "",
 			"icon" : "",
+			"linkreq" : null,
 			"emotes" : {
 				"managed" : [{
-					"id" : "",
+					"id" : 0,
 					"name" : ""
 				}],
 				"unmanaged" : [{
-					"id" : "",
+					"id" : 0,
 					"name" : ""
 				}]
 			}
 		}
-		temp.id = server.id;
+		if (typeof(serverlist[i].id) === 'string') {
+			id = parseInt(server.id);
+		} else {
+			id = server.id;
+		}
+		temp.id = id;
 		temp.name = server.name;
 		if (server.id === undefined || server.name === undefined) {
-			throw "Error: Missing vital server info";
+			throw {
+				"name" : "Missing information"
+				"message" : "missing server id or name"
+			};
 		}
 		try {
 			temp.link = server.link;
@@ -55,6 +168,23 @@ var serverfunc = (function () {
 			}
 		} catch (e) {
 			console.log("Link Missing");
+		}
+		try {
+			temp.linkreq = serverList[i].linkreq;
+			if (server.linkreq === undefined) {
+				if (temp.link === "") {
+					temp.linkreq = false;
+				} else {
+					temp.linkreq = true;
+				}
+			}
+		} catch (e) {
+			if (temp.link === "") {
+				temp.linkreq = false;
+			} else {
+				temp.linkreq = true;
+			}
+			console.log("Unable to determin if link is required");
 		}
 		try {
 			temp.icon = server.icon;
@@ -75,7 +205,7 @@ var serverfunc = (function () {
 					});
 				} catch (e) {
 					temp.emotes.managed.push({
-						"id" : "",
+						"id" : -1,
 						"name" : server.emotes.managed[i]
 					});
 				}
@@ -88,7 +218,7 @@ var serverfunc = (function () {
 					});
 				} catch (e) {
 					temp.emotes.unmanaged.push({
-						"id" : "",
+						"id" : -1,
 						"name" : server.emotes.unmanaged[i]
 					});
 				}
@@ -107,7 +237,11 @@ var serverfunc = (function () {
 						servers.unshift(temp);
 					}
 				} else {
-					console.log(e.message);
+					if (e === 'first') {
+						servers.push(temp);
+					} else {
+						console.log(e.message);
+					}
 				}
 			}
 		} else {
@@ -115,62 +249,12 @@ var serverfunc = (function () {
 		}
 	};
 	obj.fillservers = function (serverlist) {
-		var test = "", count = 0, empty = true, temp = {}, large = 0;
-		var index = 0;
-
 		if (typeof(serverlist[0].emotes.managed[0]) === 'object') {
 			servers = serverlist;
 			sorted = false;
 		}
 		for (var i = 0; i < serverlist.length; i++) {
-			temp = {
-				"id" : serverlist[i].id,
-				"name" : serverlist[i].name,
-				"link" : serverlist[i].link,
-				"icon" : serverlist[i].icon,
-				"emotes" : {
-					"managed" : [],
-					"unmanaged" : []
-				}
-			}
-			large = Math.max(serverlist[i].emotes.managed.length, serverlist[i].emotes.unmanaged.length);
-			for (var j = 0; j < large; j++) {
-				if (j < serverlist[i].emotes.managed.length) {
-					temp.emotes.managed.push({
-						"id" : "",
-						"name" : serverlist[i].emotes.managed[j]
-					});
-				}
-				if (j < serverlist[i].emotes.unmanaged.length) {
-					temp.emotes.unmanaged.push({
-						"id" : "",
-						"name" : serverlist[i].emotes.unmanaged[j]
-					});
-				}
-			}
-			if (sorted) {
-				//console.log(id);
-				try {
-					index = obj.findbyid(temp.id);
-					servers.splice(index, 0, temp);
-				} catch (e) {
-					if (typeof(e) === 'number') {
-						if (e > -1) {
-							servers.splice(e, 0, temp);
-						} else {
-							servers.unshift(temp);
-						}
-					} else {
-						if (e === 'first') {
-							servers.push(temp);
-						} else {
-							console.log(e.message);
-						}
-					}
-				}
-			} else {
-				servers.push(temp);
-			}
+			obj.addserver(serverlist[i]);
 		}
 	};
 	obj.findbyid = function (id) {
@@ -230,6 +314,7 @@ var serverfunc = (function () {
 		}
 	};
 	obj.write = writejsonfile;
+	obj.read = readjsonfile;
 	function bublesort () {
 		var swap = false, counter = 0, temp = {};
 
@@ -245,6 +330,57 @@ var serverfunc = (function () {
 			}
 			counter++;
 		} while (swap && counter < servers.length);
+	};
+	function checkemoteinput (input) {
+		var arr = input.split(" "), res = [];
+		var patt = /<:[A-Za-z0-9_]{2,}:\d+>/;
+		var patt2 = /:[A-Za-z0-9_]{2,}:/;
+
+		//<:[A-Za-z0-9_]{2,}:\\d+>
+		if (arr.length > 1) {
+			for (var i = 0; i < arr.length; i++) {
+				if (patt.test(arr[i])) {
+					console.log("emote: " + arr[1].split(patt2.exec(arr[i]))[0] + " : " +
+						arr[1].replace(patt, patt2.exec(arr[i])));
+					res.push({
+						"id" : arr[1].split(patt2.exec(arr[i]))[0],
+						"name" : arr[1].replace(patt, patt2.exec(arr[i]))
+					});
+				} else if (patt2.test(arr[i])) {
+					res.push({
+						"id" : "",
+						"name" : arr[i]
+					});
+				} else {
+					throw {
+						"name" : "Invalid emote",
+						"message" : arr[1] + " is not a valid emote input"
+					};
+				}
+			}
+		} else {
+			while (input.length > 0) {
+				//replace each emote with "" untill string empty
+			}
+		}
+		return res;
+	}
+	function nestedcheckprop (subserver, prop) {
+		if (typeof(subserver) === 'object') {
+			for (var name in subserver) {
+				if (name === prop) {
+					return true;
+				}
+			}
+		} else if (typeof(subserver) === 'array') {
+			return nestedcheckprop(subserver[0], prop);
+		} else {
+			throw {
+				"name" : "Invalid Parameter",
+				"message" : "Invalid parameter passed to nestedcheckprop"
+			};
+		}
+		return false;
 	};
 	function writejsonfile() {
 		/*

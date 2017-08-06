@@ -59,44 +59,48 @@ var globalsfn = (function () {
 		}
 		return true;
 	};
-	globals.increaseperms = function (userid, guild, amount) {
-		var level = 0;
+	globals.increaseperms = function (author, userid, guild, amount) {
+		var level = 0, authorp = globals.getperms(author, guild);
 		try {
 			level = perms[userid][guild];
 		} catch (e) {
 			console.log(e.message);
 			level = 0;
 		}
-		if ((level + amount) >= 10) {
-			level = 9;
-		} else {
-			level = level + amount;
-		}
-		try {
-			perms[userid][guild] = level;
-			console.log("Updated user " + userid + " to " + level);
-		} catch (e) {
-			console.log(e.message);
+		if ((level + 1) < authorp) {
+			if ((level + amount) >= authorp) {
+				level = authorp - 1;
+			} else {
+				level = level + amount;
+			}
+			try {
+				perms[userid][guild] = level;
+				console.log("Updated user " + userid + " to " + level);
+			} catch (e) {
+				console.log(e.message);
+			}
 		}
 	};
-	globals.removeperms = function (userid, guild, amount) {
-		var level = 0;
+	globals.removeperms = function (author, userid, guild, amount) {
+		var level = 0, authorp = globals.getperms(author, guild);
 		try {
 			level = perms[userid][guild];
 		} catch (e) {
 			console.log(e.message);
 			level = 0;
 		}
-		if ((level - amount) < -1) {
-			level = -1;
-		} else {
-			level = level - amount;
-		}
-		try {
-			perms[userid][guild] = level;
-			console.log("Updated user " + userid + " to " + level);
-		} catch (e) {
-			console.log(e.message);
+		if (authorp > level) {
+			if ((level - amount) < -1) {
+				level = -1;
+			} else {
+				level = level - amount;
+			}
+			try {
+				perms[userid][guild] = level;
+				console.log("Updated user " + userid + " to " + level);
+			} catch (e) {
+				console.log(e.message);
+			}
 		}
 	};
 	globals.getperms = function (userid, guild) {

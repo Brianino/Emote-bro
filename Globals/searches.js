@@ -6,6 +6,12 @@ var searches = (function () {
 		while (!found && i < userqueue.length) {
 			if (userqueue[i].id === id) {
 				found = true;
+				try {
+					userqueue[i].list.delete();
+				} catch (e) {};
+				try {
+					userqueue[i].msg.delete();
+				} catch (e) {};
 				userqueue[i].channel = channel;
 				userqueue[i].type = type;
 				userqueue[i].res = searchresult;
@@ -57,7 +63,7 @@ var searches = (function () {
 					"type" : userqueue[i].type,
 					"list" : userqueue[i].list,
 					"msg" : userqueue[i].msg,
-					"page" : userqueue.page
+					"page" : userqueue[i].page
 				};
 			}
 		}

@@ -5,7 +5,7 @@ commands.setrun = function (com, reqinput = false, method) {
 		this[com].reqinput = reqinput;
 		this[com].run = method;
 	} catch (e) {
-		return e.message;
+		console.log(e.message);
 	}
 };
 commands.getperms = function (com) {
@@ -74,6 +74,15 @@ commands.count = {
 		//display stored server count
 	}
 };
+commands.disp = {
+	"description" : "Display server at specified array index",
+	"permlevel" : 1,
+	"correctusage" : "disp [index]",
+	"reqinput" : false,
+	"run" : function () {
+		//display server at index
+	}
+};
 commands.id = {
 	"description" : "Search for a server by guild id",
 	"permlevel" : 0,
@@ -99,33 +108,6 @@ commands.emote = {
 	"reqinput" : false,
 	"run" : function () {
 		//Search for an emote
-	}
-};
-commands.refresh = {
-	"description" : "Refresh server list",
-	"permlevel" : 10,
-	"correctusage" : "refresh",
-	"reqinput" : false,
-	"run" : function () {
-		//run refresh function
-	}
-};
-commands.log = {
-	"description" : "Log global vars",
-	"permlevel" : 10,
-	"correctusage" : "log",
-	"reqinput" : false,
-	"run" : function () {
-		//log global vars
-	}
-};
-commands.disp = {
-	"description" : "Display server at specified array index",
-	"permlevel" : 1,
-	"correctusage" : "disp [index]",
-	"reqinput" : false,
-	"run" : function () {
-		//display server at index
 	}
 };
 commands.add = {
@@ -164,9 +146,27 @@ commands.prefix = {
 		//change bot prefix
 	}
 };
+commands.refresh = {
+	"description" : "Refresh server list",
+	"permlevel" : 9,
+	"correctusage" : "refresh",
+	"reqinput" : false,
+	"run" : function () {
+		//run refresh function
+	}
+};
+commands.log = {
+	"description" : "Log global vars",
+	"permlevel" : 10,
+	"correctusage" : "log",
+	"reqinput" : false,
+	"run" : function () {
+		//log global vars
+	}
+};
 commands.quit = {
 	"description" : "Shutdown bot",
-	"permlevel" : 10,
+	"permlevel" : 9,
 	"correctusage" : "shutdown",
 	"reqinput" : false,
 	"run" : function () {

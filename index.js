@@ -5,11 +5,6 @@ const globals = require('./Globals/global.js');
 const servers = require('./Globals/servers.js');
 const searchqueue = require('./Globals/searches.js');
 
-var arr = [], arrF = [], dfm = true, timecount = [];
-var cId = '', aId = '', shg = false, prefix = '';
-var users = [], gcl = [], msgdelete = {};
-var fs = require('fs');
-
 const bot = new Discord.Client();
 
 bot.on('ready', () => {
@@ -37,6 +32,11 @@ function linkcommands () {
 		}
 		if (index != NaN) {
 			dispserver(msg, index);
+		} else {
+			throw {
+				"name" : "invalid usage",
+				"message" : str + " is not a valid index"
+			};
 		}
 	});
 	commands.setrun("id", true, function (msg, str) {
@@ -49,7 +49,7 @@ function linkcommands () {
 			throw {
 				"name" : "invalid usage",
 				"message" : str + " is not a valid id"
-			}
+			};
 		}
 		try {
 			index = servers.findbyid(id);
@@ -72,7 +72,7 @@ function linkcommands () {
 			throw {
 				"name" : "invalid usage",
 				"message" : "invalid input: " + str
-			}
+			};
 		}
 		for (var i = 0; i < count; i++) {
 			temp = servers.prop(i, 'name');
@@ -93,6 +93,8 @@ function linkcommands () {
 	commands.setrun("emote", true, function (msg, str) {
 		var count = servers.count, temp = {}, found = false;
 		var lim = 0, counter = 0, res = [];
+		var patt = /<:[A-Za-z0-9_]{2,}:\d+>/;
+		var patt2 = /:[A-Za-z0-9_]{2,}:/;
 
 		if (msg.deletable) {
 			msg.delete();
@@ -101,7 +103,10 @@ function linkcommands () {
 			throw {
 				"name" : "invalid usage",
 				"message" : "invalid input: " + str
-			}
+			};
+		}
+		if (patt.test(str)) {
+			str.replace(patt, patt2.exec(str));
 		}
 		for (var i = 0; i < count; i++) {
 			temp = servers.server(i);
@@ -136,27 +141,98 @@ function linkcommands () {
 			}
 			found = true;
 		}
-		if (found.length == 0) {
+		if (!found) {
 			msg.reply("unable to find server");
-		} else if (found.length == 1) {
-			dispserver(msg, found[0]);
+		} else if (res.length === 1) {
+			dispserver(msg, res[0]);
 		} else {
-			searchqueue.addusertoqueue(msg.author.id, msg.channel.id, found, 'name');
+			searchqueue.addusertoqueue(msg.author.id, msg.channel.id, res, 'emote');
 			timer(60, msg.author.id);
 			disppage(msg, 0);
 		}
 	});
+	commands.setrun("edit", true, function (msg, str) {
+		var id = parseInt(str.split(" ")[0]), prop = str.split(" ")[1];
+		var input = str.split(" ").splice(0, 2).join(" ");
+		if (msg.deletable) {
+			msg.delete();
+		}
+		if (str.split(" ")[0] === 'link') {
+			prop = 'link';
+			id = 0;
+		}
+		if (id === NaN) {
+			throw {
+				"name" : "invalid usage",
+				"message" : "invalid id: " + str.split(" ")[0]
+			};
+		}
+		if (!servers.checkprop(str)) {
+			throw {
+				"name" : "invalid usage",
+				"message" : "invalid id: " + str.split(" ")[1]
+			};
+		}
+		if (prop === 'link') {
+			bot.fetchlink(input).then((invite) => {
+				servers.updateserver(invite.guild.id, 'name', invite.guild.name);
+				servers.updateserver(invite.duild.id, 'link', invite.url);
+			})
+		} else {
+			try {
+				servers.updateserver(id, prop, input);
+			} catch (e) {
+				console.log(e.name);
+				msg.reply(e.message);
+			}
+		}
+	});
+	commands.setrun("read", true, function (msg, str) {
+		var attachments = Array.from(msg.attachments), url = "";
+		const fs = require('fs');
+		if (msg.deletable) {
+			msg.delete();
+		}
+		if (attachments.length == 1) {
+			if (attachments[0].filename.includes(".json")) {
+				url = new URL(attachments[0].url);
+				console.log(msg.author.username + " uploaded a json file");
+			} else {
+				throw {
+					"name" : "invalid usage",
+					"message" : "not a json file"
+				};
+			}
+		} else {
+			throw {
+				"name" : "invalid usage",
+				"message" : "too many attachments"
+			};
+		}
+		fs.readFile(url, "utf8", function read(err, data) {
+			if(err) {
+				return console.log(err.message);
+			}
+			console.log("Loaded update file!");
+			readobj(JSON.parse(data));
+		});
+	});
 	commands.setrun("add", true, function (msg, str) {
-		var parts = str.split(" "), id = parseInt(parts[0]);
+		var parts = str.split(" "), id = 0;
 		var lvl = 0;
 
 		//run getuser function, (get user id from mention or name)
 		//only grab user from list of server members
-		if (id == NaN) {
+		if (msg.deletable) {
+			msg.delete();
+		}
+		try {
+			id = getuser(msg, parts[0]);
+		} catch (e) {
 			throw {
 				"name" : "invalid usage",
-				"message" : "invalid id: " + parts[0]
-			}
+				"message" : e.message
+			};
 		}
 		if (parts.length > 1) {
 			lvl = parseInt(parts[1]);
@@ -164,22 +240,27 @@ function linkcommands () {
 				throw {
 					"name" : "invalid usage",
 					"message" : "invalid amount: " + parts[1]
-				}
+				};
 			}
 		} else {
 			lvl = 1;
 		}
-		globals.increaseperms(id, msg.guild.id,lvl);
+		globals.increaseperms(msg.author.id, id, msg.guild.id, lvl);
 	});
 	commands.setrun("remove", true, function (msg, str) {
-		var parts = str.split(" "), id = parseInt(parts[0]);
+		var parts = str.split(" "), id = 0;
 		var lvl = 0;
 
-		if (id == NaN) {
+		if (msg.deletable) {
+			msg.delete();
+		}
+		try {
+			id = getuser(msg, parts[0]);
+		} catch (e) {
 			throw {
 				"name" : "invalid usage",
-				"message" : "invalid id: " + parts[0]
-			}
+				"message" : e.message
+			};
 		}
 		if (parts.length > 1) {
 			lvl = parseInt(parts[1]);
@@ -187,14 +268,40 @@ function linkcommands () {
 				throw {
 					"name" : "invalid usage",
 					"message" : "invalid amount: " + parts[1]
-				}
+				};
 			}
 		} else {
 			lvl = 1;
 		}
-		globals.removeperms(id, msg.guild.id,lvl);
+		globals.removeperms(msg.author.id, id, msg.guild.id, lvl);
+	});
+	commands.setrun("blacklist", true, function (msg, str) {
+		var parts = str.split(" "), channel = "";
+
+		if (msg.deletable) {
+			msg.delete();
+		}
+		if (parts.length > 1) {
+			//get channel in server
+			channel = parseInt(parts[0]);
+			if (parts[1] === 'add') {
+				//run add
+			} else if (parts[1] === 'remove') {
+				//run remove
+			} else {
+				throw {
+					"name" : "invalid usage",
+					"message" : "invalid sub command: " + parts[1]
+				};
+			}
+		} else {
+			//run add
+		}
 	});
 	commands.setrun("prefix", true, function (msg, str) {
+		if (msg.deletable) {
+			msg.delete();
+		}
 		if (str.length > 0) {
 			if (!str.includes(" ")) {
 				if (!str.includes("\n") && !str.includes("\r")) {
@@ -207,8 +314,17 @@ function linkcommands () {
 			"name" : "invalid usage",
 			"message" : "invalid prefix: " + str
 		}
-	})
+	});
+	commands.setrun("refresh", false, function (msg) {
+		if (msg.deletable) {
+			msg.delete();
+		}
+		servers.read();
+	});
 	commands.setrun("log", false, function (msg) {
+		if (msg.deletable) {
+			msg.delete();
+		}
 		try {
 			console.log("Prefix: " + globals.p(msg.guild.id));
 			console.log("Servers: " + servers.count());
@@ -240,6 +356,7 @@ bot.on('message', (message) => {
 	console.log(message.content);
 	if (!runcheck(message)) {
 		if (message.content.startsWith(prefix)) {
+			console.log(msg.author.username + " tried " + com);
 			content = message.content.substring(prefix.length);
 			temp = content.split("\n");
 			for (var i = 0; i < temp.length; i++) {
@@ -311,7 +428,12 @@ function runcheck (msg) {
 	var parts = [], page = 0, input = 0, obj = {};
 
 	if (msg.content.length < 1) {
-		return false;
+		return true;
+	}
+	if (!globals.verifychannel(msg.channel.id)) {
+		if (globals.getperms(msg.author.id, msg.guild.id) <== 0) {
+			return true;
+		}
 	}
 	if (searchqueue.verifychannel(msg.author.id, msg.channel.id)) {
 		if (parseInt(msg.content) == NaN) {
@@ -324,6 +446,7 @@ function runcheck (msg) {
 					if (msg.deletable) {
 						msg.delete();
 					}
+					timer(60, msg.author.id);
 					disppage(msg, page);
 				}
 			}
@@ -338,7 +461,11 @@ function runcheck (msg) {
 				}
 				obj = searchqueue.getusersearch(msg.author.id);
 				if (obj != null) {
-					dispserver(msg, obj.res[input]);
+					try {
+						obj.msg.delete()
+					} catch (e) {}
+					timer(60, msg.author.id);
+					dispserver(msg, obj.res[(obj.page * obj.lim) + input]);
 				}
 			}
 			return true;
@@ -392,15 +519,28 @@ function dispserver (msg, index) {
 		"value" : str2,
 		"inline" : false
 	});
-	bot.fetchlink(server.link).then((invite) => {
-		msg.channel.send({embed: embedobj}).then((msg) => {
-			msgtimer(60, msg);
+	if (server.link !== "") {
+		bot.fetchlink(server.link).then((invite) => {
+			if (server.name != invite.guild.name) {
+				servers.updateserver(invite.guild.id, 'name', invite.guild.name);
+				embedobj.title = invite.guild.name + "(Updated Name)";
+			}
+			msg.channel.send({embed: embedobj}).then((msg) => {
+				searchqueue.updateuser(user, msg);
+				//msgtimer(60, msg);
+			});
+		}).catch(e => {
+			embedobj.description = "Dead Invite Link";
+			searchqueue.deadlistserver(index);
+			servers.deadlistserver(index);
 		});
-	}).catch(e => {
-		embedobj.description = "Dead Invite Link";
-		searchqueue.deadlistserver(index);
-		obj.deadlistserver(index);
-	});
+	} else {
+		embedobj.description = "Request Invite";
+		msg.channel.send({embed: embedobj}).then((msg) => {
+			searchqueue.updateuser(user, msg);
+			//msgtimer(60, msg);
+		});
+	}
 };
 
 function disppage (msg, page) {
@@ -424,14 +564,14 @@ function disppage (msg, page) {
 		"fields" : []
 	}
 	for (var i = min; i <= max; i++) {
-		if (obj.type == 'name') {
+		if (obj.type === 'name') {
 			server = servers.server(obs.res[i]);
 			embedobj.fields.push({
 				"name" : i + " - " + server.name,
 				"value" : "ID: " + server.id,
 				"inline" : false
 			});
-		} else {
+		} else if (obj.type === 'emote') {
 			server = servers.server(obs.res[i].index);
 			embedobj.fields.push({
 				"name" : i + " - " + server.name,
@@ -439,11 +579,134 @@ function disppage (msg, page) {
 				"\nLocal Matches: " + obj.res[i].unmanaged,
 				"inline" : false
 			});
+		} else {
+			throw {
+				"name" : "invalid type",
+				"message" : "search type not reognised"
+			}
 		}
 	}
 	msg.channel.send({embed: embedobj}).then((msg) => {
-		searchqueue.updateuser(user, msg, true, page);
+		searchqueue.updateuser(user, msg, true, page, lim);
 	});
+};
+
+function readobj (obj) {
+	var server = {}, found = 0;
+
+	server = {
+		"id" : "",
+		"name" : "",
+		"link" : "",
+		"icon" : "",
+		"emotes" : {
+			"managed" : [{
+				"id" : "",
+				"name" : ""
+			}],
+			"unmanaged" : [{
+				"id" : "",
+				"name" : ""
+			}]
+		}
+	}
+	for (var name in obj) {
+		if (typeof(obj[name]) != 'array' && typeof(obj[name]) != 'object') {
+			for (var prop in server) {
+				if (name === prop) {
+					server[prop] = obj[prop];
+				}
+			}
+		} else {
+			if (name === 'managed' || name === 'unmanaged') {
+				if (typeof(obj[name]) === 'array') {
+					server.emotes[name] = obj[name];
+					found++;
+				} else {
+					throw {
+						"name" : "Invalid JSON",
+						"message" : name + " Is not an array"
+					}
+				}
+			} else {
+				if (typeof(obj[name]) === 'object' || typeof(obj[name]) === 'array') {
+					found = nestedreadobj(server, obj[name]) + found;
+				}
+			}
+		}
+	}
+	if (found < 2) {
+		throw {
+			"name" : "Missing Emote Array",
+			"message" : "Could not find managed or unmanaged emote array"
+		}
+	}
+	servers.addserver(server);
+
+	function nestedreadobj (server, obj) {
+		var found = 0;
+		for (var name in obj) {
+			if (name === 'managed' || name === 'unmanaged') {
+				if (typeof(obj[name]) === 'array') {
+					server.emotes[name] = obj[name];
+					found++;
+				} else {
+					throw {
+						"name" : "Invalid JSON",
+						"message" : name + " Is not an array"
+					}
+				}
+			} else {
+				if (typeof(obj[name]) === 'object' || typeof(obj[name]) === 'array') {
+					found = nestedreadobj(server, obj[name]) + found;
+				}
+			}
+		}
+		return found;
+	};
+};
+
+function getuser(msg, input) {
+	var mentions = Array.from(msg.mentions.members);
+	var members = Array.from(msg.guild.members);
+	var bestmatch = input.length + 1, bestmatchi = -1, temp = 0;
+
+	if (mentions.length > 0) {
+		return mentions[0].id;
+	} else if (mentions.length > 1) {
+		throw {
+			"name" : "invalid usage",
+			"mention" : "too many mentions"
+		};
+	} else {
+		for (var i = 0; i < members.length; i++) {
+			if (input == members[i].id) {
+				return members[i].id;
+			} else if (input === members.nickname) {
+				return members[i].id;
+			} else if (input === members.user.username) {
+				return members[i].id;
+			} else if (members.nickname.includes(input) || members.user.username.includes(input)) {
+				temp = Math.min(members.nickname.length - input.length, members.user.username.length - input.length);
+				if (temp < bestmatch) {
+					bestmatchi = i;
+					bestmatch = temp;
+				}
+			}
+		}
+		if (bestmatchi > -1) {
+			return members[bestmatchi].id;
+		} else {
+			throw {
+				"name" : "member not found",
+				"message" : "member doesnt exist, or not in this server"
+			}
+		}
+	}
+};
+
+function checklink (link) {
+
 };
 
 function timer (seconds, id) {
@@ -496,526 +759,5 @@ function msgtimer (seconds, msg) {
 		});
 	});
 };
-
-function defaultMessageEvent(message) {
-	/*
-	* FUNCTION THAT RUNS ON MESSAGE EVENT
-	*/
-	var defaultlink = "discord.gg/";
-	var parts = message.content.split(" ");
-	var lines = message.content.split("\n");
-	var tempstrarr = [], linkcount = 0;
-
-	if (verifygc(message)) {
-		if (parts.length === 1) {
-			if (tolc(message.content) == (prefix + "l")) {
-				/*
-				* LOAD JSON DATA FROM FILE
-				*/
-				if(message.deletable) {
-					message.delete();
-				}
-				if (message.author.id == config.owner) {
-					readjsonfile();
-				} else {
-					message.channel.send("Dont have the required permissions");
-				}
-			} else if (tolc(message.content) == (prefix + "count")) {
-				/*
-				* COUNT NUMBER OF SERVERS STORED
-				*/
-				if(message.deletable) {
-					message.delete();
-				}
-				message.reply("Number Of Servers: " + arr.length);
-			} else if (tolc(message.content) === (prefix + "log")) {
-				/*
-				* LOG STATUS OF GLOBAL VARIABLES
-				*/
-				if(message.deletable) {
-					message.delete();
-				}
-				if (message.author.id == config.owner) {
-					logGlobals();
-				} else {
-					message.channel.send("Dont have the required permissions");
-				}
-			} else if (tolc(message.content) === (prefix + "help")) {
-				/*
-				* LOG STATUS OF GLOBAL VARIABLES
-				*/
-				var helpmsg = "";
-				if(message.deletable) {
-					message.delete();
-				}
-				if (verifyUser(message.author.id)) {
-					helpmsg = "```\n";
-					helpmsg = helpmsg + prefix + "count -> Number of servers stored\n"
-					helpmsg = helpmsg + prefix + "disp -> Dsiplay server at specific index\n"
-					helpmsg = helpmsg + prefix + "id -> Search for server by ID\n"
-					helpmsg = helpmsg + prefix + "name -> Search for server by name\n"
-					helpmsg = helpmsg + prefix + "emote -> Search for emote\n"
-					helpmsg = helpmsg + prefix + "add -> Add advanced permissions to user (add user by ID)\n"
-					helpmsg = helpmsg + prefix + "blacklist -> Block commands from certain channels (add channel by ID)\n"
-					helpmsg = helpmsg + prefix + "rblacklist -> Remove blacklisted channel (by ID)\n"
-					helpmsg = helpmsg + prefix + "prefix -> Change bot command prefix\n"
-					helpmsg = helpmsg + "```"
-				} else {
-					helpmsg = "```\n";
-					helpmsg = helpmsg + prefix + "count -> Number of servers stored\n"
-					helpmsg = helpmsg + prefix + "id -> Search for server by ID\n"
-					helpmsg = helpmsg + prefix + "name -> Search for server by name\n"
-					helpmsg = helpmsg + prefix + "emote -> Search for emote\n"
-					helpmsg = helpmsg + "```"
-				}
-				message.channel.send(helpmsg);
-			}
-		} else if (parts.length === 2) {
-			if (tolc(parts[0]) == (prefix + "disp")) {
-				/*
-				* DISPLAY SERVER AT SPECIFIED INDEX
-				*/
-				if(message.deletable) {
-					message.delete();
-				}
-				if (verifyUser(message.author.id)) {
-					var index = parseInt(parts[1]);
-					if (index > arr.length - 1) {
-						index = arr.length - 1;
-					}
-					if (index < 0) {
-						index = 0;
-					}
-					disp(message, index);
-				} else {
-					message.channel.send("Dont have the required permissions");
-				}
-			} else if (tolc(parts[0]) == (prefix + "id")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				console.log("Searching For: " + parts[1]);
-				try {
-					searchByServer(message, parts[1], true);
-				} catch (e) {
-					message.reply("Not a Valid ID");
-					console.log(e);
-				}
-			} else if (tolc(parts[0]) == (prefix + "name")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (cId == '') {
-					var temp = "";
-					parts[0] = "";
-					temp = parts[1];
-					console.log("Searching For: " + tolc(temp));
-					try {
-						searchByServer(message, temp, false);
-					} catch (e) {
-						message.reply("Not Valid: " + temp);
-						console.log(e);
-					}
-				} else {
-					message.reply("Search in use, please wait");
-				}
-			} else if (tolc(parts[0]) == (prefix + "emote")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (cId == '') {
-					var temp = "";
-					parts[0] = "";
-					temp = parts[1];
-					console.log("Searching For: " + temp);
-					try {
-						searchByEmote(message, temp);
-					} catch (e) {
-						message.reply("Not Valid: " + temp);
-						console.log(e);
-					}
-				} else {
-					message.reply("Search in use, please wait");
-				}
-			} else if (tolc(parts[0]) == (prefix + "add")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (verifyUser(message.author.id)) {
-					users.push({
-						"id" : parts[1],
-						"admin" : false
-					});
-					console.log("Added User: " + parts[1]);
-					writeuserjsonfile();
-				} else {
-					message.channel.send("Dont have the required permissions");
-				}
-			} else if (tolc(parts[0]) == (prefix + "remove")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (verifyUser(message.author.id)) {
-					var found = false, i = 0;
-					while (!found && i < users.length) {
-						if (users[i].id == parts[1]) {
-							users.splice(i, 1);
-							console.log("Removed User: " + parts[1]);
-							found = true;
-						}
-						i++;
-					}
-					if (!found) {
-						console.log("Unable To Remove User: " + parts[1]);
-					} else {
-						writeuserjsonfile();
-					}
-				} else {
-					message.channel.send("Dont have the required permissions");
-				}
-			} else if (tolc(parts[0]) == (prefix + "blacklist")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (verifyUser(message.author.id)) {
-					var found = false, i = 0;
-					var temp = [];
-					while (!found && i < gcl.length) {
-						if (gcl[i].id == message.guild.id) {
-							gcl[i].channels.push(parts[1]);
-							console.log("Blacklisted Channel: " + parts[1]);
-							found = true;
-						}
-						i++;
-					}
-					if (!found) {
-						gcl.push({
-							"id" : message.guild.id,
-							"channels" : []
-						});
-						gcl[gcl.length - 1].channels.push(parts[1]);
-						console.log("Blacklisted Channel: " + parts[1]);
-					}
-					writegcljsonfile();
-				} else {
-					message.channel.send("Dont have the required permissions");
-				}
-			} else if (tolc(parts[0]) == (prefix + "rblacklist")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (verifyUser(message.author.id)) {
-					var found = false, i = 0, j = 0;
-					if (message.deletable) {
-						message.delete();
-					}
-					while (!found && i < gcl.length) {
-						if (gcl[i].id == message.guild.id) {
-							while (!found && j < gcl[i].channels.length) {
-								if (gcl[i].channels[j] == parts[1]) {
-									gcl[i].channels.splice(j, 1);
-									console.log("Removed Channel: " + parts[1]);
-									found = true;
-								}
-								j++;
-							}
-						}
-						i++;
-					}
-					if (!found) {
-						console.log("Channel not Blacklisted");
-						message.channel.send("Channel Not Blacklisted");
-					} else {
-						writegcljsonfile();
-					}
-				} else {
-					message.channel.send("Dont have the required permissions");
-				}
-			} else if (tolc(parts[0]) == (prefix + "prefix")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (verifyUser(message.author.id)) {
-					prefix = parts[1];
-					writesettingsjsonfile();
-				} else {
-					message.channel.send("Dont have the required permissions");
-				}
-			}
-		} else if (parts.length == 3) {
-			if ((tolc(parts[0]) == (prefix + "emote")) && (tolc(parts[2]) == "all")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (cId == '') {
-					var temp = "";
-					console.log("Searching For: " + parts[1]);
-					try {
-						searchByEmote(message, parts[1], true);
-					} catch (e) {
-						message.reply("Not Valid: " + temp);
-						console.log(e);
-					}
-				} else {
-					message.reply("Search in use, please wait");
-				}
-			}
-			if (tolc(parts[0]) == (prefix + "name")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (cId == '') {
-					var temp = "";
-					parts[0] = "";
-					temp = parts.join(" ");
-					temp = temp.substring(1, temp.length);
-					console.log("Searching For: " + tolc(temp));
-					try {
-						searchByServer(message, temp, false);
-					} catch (e) {
-						message.reply("Not Valid: " + temp);
-						console.log(e);
-					}
-				} else {
-					message.reply("Search in use, please wait");
-				}
-			}
-		} else if (parts.length == 4) {
-			if ((tolc(parts[0]) == (prefix + "emote")) && (tolc(parts[2]) == "all") && (tolc(parts[3]) == "global")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (cId == '') {
-					var temp = "";
-					console.log("Searching For: " + parts[1]);
-					try {
-						searchByEmote(message, parts[1], true, true);
-					} catch (e) {
-						message.reply("Not Valid: " + temp);
-						console.log(e);
-					}
-				} else {
-					message.reply("Search in use, please wait");
-				}
-			}
-			if (tolc(parts[0]) == (prefix + "name")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (cId == '') {
-					var temp = "";
-					parts[0] = "";
-					temp = parts.join(" ");
-					temp = temp.substring(1, temp.length);
-					console.log("Searching For: " + tolc(temp));
-					try {
-						searchByServer(message, temp, false);
-					} catch (e) {
-						message.reply("Not Valid: " + temp);
-						console.log(e);
-					}
-				} else {
-					message.reply("Search in use, please wait");
-				}
-			}
-		} else {
-			if (tolc(parts[0]) == (prefix + "name")) {
-				if (message.deletable) {
-					message.delete();
-				}
-				if (cId == '') {
-					var temp = "";
-					parts[0] = "";
-					temp = parts.join(" ");
-					temp = temp.substring(1, temp.length);
-					console.log("Searching For: " + tolc(temp));
-					try {
-						searchByServer(message, temp, false);
-					} catch (e) {
-						message.reply("Not Valid: " + temp);
-						console.log(e);
-					}
-				} else {
-					message.reply("Search in use, please wait");
-				}
-			}
-		}
-		if (message.author.id == config.owner) {
-			if (message.content === (prefix + "quit")) {
-				//SHUT DOWN BOT
-				if(message.deletable) {
-					message.delete().then(function() {
-						bot.destroy().then(function() {
-							process.exit();
-						});
-					});
-				} else {
-					bot.destroy().then(function() {
-						process.exit();
-					});
-				}
-			}
-		}
-	}
-}
-
-function writejsonfile() {
-	/*
-	* WRITE AND STORE JSON DATA TO FILE
-	*/
-	fs.writeFile("Files/ServerList.json", JSON.stringify(arr), function(err) {
-		if(err) {
-			return console.log(err);
-		}
-		//console.log("The file was saved!");
-	});
-}
-
-function readjsonfile() {
-	/*
-	* READ AND STORE JSON DATA FROM A TXT FILE
-	*/
-	fs.readFile("Files/ServerList.json", "utf8", function read(err, data) {
-		if(err) {
-			return console.log(err.message);
-		}
-		//console.log("Data loaded!");
-		arr = JSON.parse(data);
-	});
-}
-
-function readuserjsonfile() {
-	/*
-	* READ AND STORE VALID USERS FROM A TXT FILE
-	*/
-	fs.readFile("Files/Users.json", "utf8", function read(err, data) {
-		if(err) {
-			return console.log(err.message);
-		}
-		//console.log("Users were loaded!");
-		users = JSON.parse(data);
-	});
-}
-
-function writeuserjsonfile() {
-	/*
-	* WRITE VALID USERS TO A TXT FILE
-	*/
-	fs.writeFile("Files/Users.json", JSON.stringify(users), function(err) {
-		if(err) {
-			return console.log(err);
-		}
-		//console.log("Users were saved!");
-	});
-}
-
-function readgcljsonfile() {
-	/*
-	* READ AND STORE VALID GUILDS AND CHANNELS FROM A TXT FILE
-	*/
-	fs.readFile("Files/Channels.json", "utf8", function read(err, data) {
-		if(err) {
-			return console.log(err.message);
-		}
-		//console.log("Whitelisted Guilds were loaded!");
-		gcl = JSON.parse(data);
-	});
-}
-
-function writegcljsonfile() {
-	/*
-	* WRITE VALID GUILDS AND CHANNELS TO A TXT FILE
-	*/
-	fs.writeFile("Files/Channels.json", JSON.stringify(gcl), function(err) {
-		if(err) {
-			return console.log(err.message);
-		}
-		//console.log("Whitelisted Guilds were saved!");
-	});
-}
-
-function readsettingsjsonfile() {
-	/*
-	* WRITE SETTINGS TO FILES
-	*/
-	var temp = {
-		"prefix" : prefix,
-	}
-	fs.readFile("Files/Settings.json", "utf8", function read(err, data) {
-		if(err) {
-			prefix = '.';
-			console.log("Prefix set to: " + prefix);
-			return console.log(err.message);
-		}
-		console.log("Settings were loaded!");
-		try {
-			prefix = JSON.parse(data).prefix;
-		} catch (e) {
-			console.log(e.message);
-			prefix = '.';
-		}
-		console.log("Prefix set to: " + prefix);
-	});
-}
-
-function writesettingsjsonfile() {
-	/*
-	* WRITE SETTINGS TO FILES
-	*/
-	var temp = {
-		"prefix" : prefix
-	}
-	fs.writeFile("Files/Settings.json", JSON.stringify(temp), function(err) {
-		if(err) {
-			return console.log(err.message);
-		}
-		//console.log("Settings were saved!");
-	});
-}
-
-function verifyUser(input) {
-	try {
-		if (config.owner == input) {
-			return true;
-		}
-		for (var i = 0; i < users.length; i++) {
-			if (input == users[i].id) {
-				return true;
-			}
-		}
-	} catch (e) {
-		console.log(e.message);
-	}
-	return false;
-}
-
-function verifygc(input) {
-	try {
-		if (input.author.id == config.owner) {
-			return true;
-		}
-		if (gcl.length == 0) {
-			return false;
-		}
-		for (var i = 0; i < gcl.length; i++) {
-			if (input.guild.id == gcl[i].id) {
-				for (var j = 0; j < gcl[i].channels.length; j++) {
-					if (input.channel.id == gcl[i].channels[j]) {
-						return false;
-					}
-				}
-				return true;
-			}
-		}
-		gcl.push({
-			"id" : message.guild.id,
-			"channels" : []
-		});
-		return true;
-	} catch (e) {
-		console.log(e.message);
-	}
-	return false;
-}
 
 bot.login(config.token); //Bot Token
