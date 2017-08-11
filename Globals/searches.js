@@ -18,6 +18,7 @@ var searches = (function () {
 				userqueue[i].list = {};
 				userqueue[i].msg = {};
 				userqueue[i].page = 0;
+				userqueue[i].lim = 0;
 			}
 			i++;
 		}
@@ -30,22 +31,29 @@ var searches = (function () {
 				"list" : {},
 				"msg" : {},
 				"page" : 0,
+				"lim" : 0,
 				"timecount" : 0
 			})
 		}
 	};
-	obj.updateuser = function (id, msg = {}, islist = false, page = 0) {
+	obj.updateuser = function (id, msg = {}, islist = false, page = 0, lim = 0) {
 		for (var i = 0; i < userqueue.length; i++) {
 			if (userqueue[i].id === id) {
 				if (islist) {
+					try {
+						if (userqueue[i].list.deletable) {
+							userqueue[i].list.delete();
+						}
+					} catch (e) {};
 					userqueue[i].list = msg;
 					userqueue[i].page = page;
+					userqueue[i].lim = lim;
 				} else {
 					try {
 						if (userqueue[i].msg.deletable) {
 							userqueue[i].msg.delete();
 						}
-					} catch (e) {}
+					} catch (e) {};
 					userqueue[i].msg = msg;
 				}
 			}
@@ -63,7 +71,8 @@ var searches = (function () {
 					"type" : userqueue[i].type,
 					"list" : userqueue[i].list,
 					"msg" : userqueue[i].msg,
-					"page" : userqueue[i].page
+					"page" : userqueue[i].page,
+					"lim" : userqueue[i].lim
 				};
 			}
 		}

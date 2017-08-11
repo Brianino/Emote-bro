@@ -21,6 +21,13 @@ commands.getperms = function (com) {
 	}
 	return perm;
 };
+commands.getflag = function (com) {
+	try {
+		return this[com].flag;
+	} catch (e) {
+		return null;
+	}
+};
 commands.reqinput = function (com) {
 	try {
 		return this[com].reqinput;
@@ -39,9 +46,9 @@ commands.getusage = function (com) {
 commands.help = {
 	"description" : "Show all available commands",
 	"permlevel" : 0,
-	"correctusage" : "help",
-	"reqinput" : false,
-	"run" : function (msg, perm, prefix = ".") {
+	"correctusage" : "help <command>",
+	"reqinput" : true,
+	"run" : function (msg, perm, prefix = ".", input = "") {
 		//show help
 		var embedobj = {};
 
@@ -50,15 +57,28 @@ commands.help = {
 			"color" : 0xFF0000,
 			"fields" : []
 		};
-		for (var name in commands) {
-			//verify perm level
-			if (name != "setrun" && name != "getperms" && name != "reqinput" && name != "getusage") {
-				if (commands[name].permlevel <= perm) {
-					embedobj.fields.push({
-						"name" : prefix + name,
-						"value" : commands[name].description,
-						"inline" : false
-					});
+		if (input.length === 0) {
+			for (var name in commands) {
+				//verify perm level
+				if (name != "setrun" && name != "getperms" && name != "reqinput" && name != "getusage" && name != "getflag") {
+					if (commands[name].permlevel <= perm) {
+						embedobj.fields.push({
+							"name" : prefix + name,
+							"value" : commands[name].description,
+							"inline" : false
+						});
+					}
+				}
+			}
+		} else {
+			embedobj.title = input;
+			try {
+				embedobj.description = "Description: " + commands[input].description + "\n" +
+				"Usage: " + commands[input].correctusage;
+			} catch (e) {
+				throw {
+					"name" : "invalid usage",
+					"message" : input + " is not a valid command"
 				}
 			}
 		}
@@ -110,10 +130,28 @@ commands.emote = {
 		//Search for an emote
 	}
 };
+commands.edit = {
+	"description" : "Edit server properties",
+	"permlevel" : 1,
+	"correctusage" : "edit <server id> [property name] [new value]",
+	"reqinput" : false,
+	"run" : function () {
+		//Edit server properties
+	}
+};
+commands.read = {
+	"description" : "Read server data from json file",
+	"permlevel" : 1,
+	"correctusage" : "read [.json file attatched]",
+	"reqinput" : false,
+	"run" : function () {
+		//Read server data from json file
+	}
+};
 commands.add = {
 	"description" : "Increase specified user perms",
 	"permlevel" : 1,
-	"correctusage" : "add [user id] <ammount to add>",
+	"correctusage" : "add [user] <ammount to add>",
 	"reqinput" : false,
 	"run" : function () {
 		//increase user perms
@@ -122,7 +160,7 @@ commands.add = {
 commands.remove = {
 	"description" : "Lower specified user perms",
 	"permlevel" : 1,
-	"correctusage" : "remove [user id] <ammount to subtract>",
+	"correctusage" : "remove [user] <ammount to subtract>",
 	"reqinput" : false,
 	"run" : function () {
 		//lower user perms
@@ -131,7 +169,7 @@ commands.remove = {
 commands.blacklist = {
 	"description" : "Add channels to blacklist to ignore them, or remove them from the blacklist",
 	"permlevel" : 1,
-	"correctusage" : "blacklist [channel id] <add/remove>",
+	"correctusage" : "blacklist [channel] <add/remove>",
 	"reqinput" : false,
 	"run" : function () {
 		//blacklist channel or remove from blacklist

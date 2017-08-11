@@ -1,5 +1,5 @@
 var serverfunc = (function () {
-	var servers = [], obj = {};
+	var servers = [], obj = {}, incomplete = [];
 	var deadlist = [], sorted = true;
 	var fs = require('fs');
 
@@ -17,7 +17,7 @@ var serverfunc = (function () {
 		return servers[index];
 	};
 	obj.updateserver = function (id, prop, input) {
-		var index = 0, emotearr = [], isdeadlist = false;
+		var index = 0, emotearr = [], isdeadlist = false, newserver = false;
 		var found = false, counter = 0, temp = {};
 		var pattD = /(https?:\/\/)?discord\.gg\/[A-Za-z0-9]+/;
 		var pattI = /https?:\/\/cdn\.discordapp\.com\/icons\/[A-Za-z0-9]+\/[A-Za-z0-9]+/;
@@ -39,10 +39,37 @@ var serverfunc = (function () {
 			}
 		}
 		if (!found) {
-			throw {
-				"name" : "server not found",
-				"message" : "could not find server: " + id
-			};
+			counter = 0;
+			while (counter < incomplete.length && !found) {
+				if (incomplete[counter].id == id) {
+					found = true;
+					index = counter;
+				}
+				counter++;
+			}
+			if (!found) {
+				incomplete.push({
+					"id" : id,
+					"name" : "",
+					"link" : "",
+					"icon" : "",
+					"linkreq" : null,
+					"emotes" : {
+						"managed" : [{
+							"id" : 0,
+							"name" : ""
+						}],
+						"unmanaged" : [{
+							"id" : 0,
+							"name" : ""
+						}]
+					}
+				});
+				index = incomplete.length - 1;
+			} else {
+				found = false;
+			}
+			newserver = true;
 		}
 		if (prop === 'link') {
 			//check for discord.gg
@@ -62,16 +89,44 @@ var serverfunc = (function () {
 			}
 		}
 		if (prop === 'name' || prop === 'link' || prop === 'icon' || prop === 'linkreq') {
+			if (prop === 'linkreq') {
+				if (input === 'true') {
+					input = true;
+				} else if (input === 'false') {
+					input = false;
+				} else {
+					throw {
+						"name" : "invalid input",
+						"message" : input + " needs to be true/false for " + prop
+					}
+				}
+			}
 			try {
 				if (!isdeadlist) {
 					servers[index][prop] = input;
-				} else {
+					if (!checkinfo(servers[i])) {
+						incomplete.push(servers[index]);
+						servers.splice(index, 1);
+					} else if (servers[index].linkreq && servers.link.length === 0) {
+						obj.deadlistserver(index);
+					}
+				} else if (!newserver) {
 					deadlist[index][prop] = input;
-					if (prop === 'link') {
+					if (!checkinfo(deadlist[i])) {
+						incomplete.push(deadlist[index]);
+						deadlist.splice(index, 1);
+					} else if (prop === 'link') {
+						temp = deadlist[index];
+						deadlist.splice(index, 1);
+						obj.addserver(temp);
+					} else if (!deadlist[index].linkreq) {
 						temp = deadlist[index];
 						deadlist.splice(index, 1);
 						obj.addserver(temp);
 					}
+				} else {
+					incomplete[index][prop] = input;
+					checkincomplete();
 				}
 			} catch (e) {
 				console.log(e.message);
@@ -80,8 +135,19 @@ var serverfunc = (function () {
 			emotearr = checkemoteinput(input);
 			if (!isdeadlist) {
 				servers[index].emotes[prop] = emotearr;
-			} else {
+				if (!checkinfo(servers[i])) {
+					incomplete.push(servers[index]);
+					servers.splice(index, 1);
+				}
+			} else if (!newserver) {
 				deadlist[index].emotes[prop] = emotearr;
+				if (!checkinfo(deadlist[i])) {
+					incomplete.push(deadlist[index]);
+					deadlist.splice(index, 1);
+				}
+			} else {
+				incomplete[index].emotes[prop] = emotearr;
+				checkincomplete();
 			}
 		} else {
 			throw {
@@ -130,6 +196,8 @@ var serverfunc = (function () {
 	};
 	obj.addserver = function (server) {
 		var large = 0, id = 0;
+		var pattD = /(https?:\/\/)?discord\.gg\/[A-Za-z0-9]+/;
+		var pattI = /https?:\/\/cdn\.discordapp\.com\/(icons|avatars)\/[A-Za-z0-9]+\/[A-Za-z0-9]+/;
 		var temp = {
 			"id" : 0,
 			"name" : "",
@@ -147,7 +215,7 @@ var serverfunc = (function () {
 				}]
 			}
 		}
-		if (typeof(serverlist[i].id) === 'string') {
+		if (typeof(server.id) === 'string') {
 			id = parseInt(server.id);
 		} else {
 			id = server.id;
@@ -156,44 +224,44 @@ var serverfunc = (function () {
 		temp.name = server.name;
 		if (server.id === undefined || server.name === undefined) {
 			throw {
-				"name" : "Missing information"
+				"name" : "Missing information",
 				"message" : "missing server id or name"
 			};
 		}
 		try {
 			temp.link = server.link;
-			if (server.link === undefined) {
-				console.log("Link Missing");
+			if (!pattD.test(temp.link)) {
+				console.log(temp.name + " link: " + server.link);
 				temp.link = "";
 			}
 		} catch (e) {
-			console.log("Link Missing");
+			console.log(temp.name + " link missing");
 		}
 		try {
 			temp.linkreq = serverList[i].linkreq;
 			if (server.linkreq === undefined) {
-				if (temp.link === "") {
+				if (server.link === "") {
 					temp.linkreq = false;
 				} else {
 					temp.linkreq = true;
 				}
 			}
 		} catch (e) {
-			if (temp.link === "") {
+			if (server.link === "") {
 				temp.linkreq = false;
 			} else {
 				temp.linkreq = true;
 			}
-			console.log("Unable to determin if link is required");
+			//console.log("Unable to determin if link is required");
 		}
 		try {
 			temp.icon = server.icon;
-			if (server.icon === undefined) {
-				console.log("Icon Missing");
+			if (!pattI.test(temp.icon)) {
+				console.log(temp.name + " icon: " + server.icon);
 				temp.icon = "";
 			}
 		} catch (e) {
-			console.log("Icon Missing");
+			console.log(temp.name + " icon missing");
 		}
 		large = Math.max(server.emotes.managed.length, server.emotes.unmanaged.length);
 		for (var i = 0; i < large; i++) {
@@ -210,7 +278,7 @@ var serverfunc = (function () {
 					});
 				}
 			}
-			if (i < obj.emotes.unmanaged.length) {
+			if (i < server.emotes.unmanaged.length) {
 				try {
 					temp.emotes.unmanaged.push({
 						"id" : server.emotes.unmanaged[i].id,
@@ -228,13 +296,13 @@ var serverfunc = (function () {
 			//Enter right place
 			try {
 				index = obj.findbyid(temp.id);
-				servers.splice(index, 0, temp);
+				servers[index] = temp;
 			} catch (e) {
 				if (typeof(e) === 'number') {
-					if (e > 0) {
+					if (e < servers.length) {
 						servers.splice(e, 0, temp);
 					} else {
-						servers.unshift(temp);
+						servers.push(temp);
 					}
 				} else {
 					if (e === 'first') {
@@ -272,9 +340,9 @@ var serverfunc = (function () {
 		while (count < 30) {
 			if (max < min) {
 				if (servers[pos].id < id) {
-					throw pos;
+					throw pos + 1;
 				} else if (servers[pos].id > id) {
-					throw pos - 1;
+					throw pos;
 				} else {
 					e = {
 						"name" : "Error finding by id",
@@ -313,6 +381,35 @@ var serverfunc = (function () {
 			return null;
 		}
 	};
+	obj.getincompleteprops = function () {
+		var res = [], maxemotes = 0, useid = false;
+
+		for (var i = 0; i < incomplete.length; i++) {
+			maxemotes = Math.max(incomplete[i].emotes.managed.length, incomplete[i].emotes.unmanaged.length);
+			if (maxemotes === 0 && incomplete[i].name === "") {
+				res.push({
+					"identifier" : incomplete[i].id,
+					"missing" : "server name and emotes"
+				});
+			} else if (incomplete[i].name === "") {
+				res.push({
+					"identifier" : incomplete[i].id,
+					"missing" : "server name"
+				});
+			} else if (maxemotes === 0) {
+				res.push({
+					"identifier" : incomplete[i].name,
+					"missing" : "server emotes"
+				});
+			} else {
+				throw {
+					"name" : "Server not moved from incomplete",
+					"message" : "server " + incomplete.name + " should not be in incomplete"
+				};
+			}
+		}
+		return res;
+	}
 	obj.write = writejsonfile;
 	obj.read = readjsonfile;
 	function bublesort () {
@@ -335,32 +432,47 @@ var serverfunc = (function () {
 		var arr = input.split(" "), res = [];
 		var patt = /<:[A-Za-z0-9_]{2,}:\d+>/;
 		var patt2 = /:[A-Za-z0-9_]{2,}:/;
+		var patt3 = /:\d+>/;
+		var emoteleft = true;
 
 		//<:[A-Za-z0-9_]{2,}:\\d+>
 		if (arr.length > 1) {
 			for (var i = 0; i < arr.length; i++) {
 				if (patt.test(arr[i])) {
 					console.log("emote: " + arr[1].split(patt2.exec(arr[i]))[0] + " : " +
-						arr[1].replace(patt, patt2.exec(arr[i])));
+						arr[i].replace(patt, patt2.exec(arr[i])));
 					res.push({
-						"id" : arr[1].split(patt2.exec(arr[i]))[0],
-						"name" : arr[1].replace(patt, patt2.exec(arr[i]))
+						"id" : patt3.exec(arr[i]).substring(1, patt3.exec(arr[i]) - 1),
+						"name" : patt2.exec(arr[i])
 					});
 				} else if (patt2.test(arr[i])) {
 					res.push({
 						"id" : "",
 						"name" : arr[i]
 					});
-				} else {
-					throw {
-						"name" : "Invalid emote",
-						"message" : arr[1] + " is not a valid emote input"
-					};
 				}
 			}
 		} else {
-			while (input.length > 0) {
+			while (input.length > 0 && emoteleft) {
 				//replace each emote with "" untill string empty
+				if (patt.test(arr[1])) {
+					console.log("emote: " + patt2.exec(arr[i]) + " : " + patt3.exec(arr[i]));
+					emoteleft = true;
+					res.push({
+						"id" : patt3.exec(arr[1]).substring(1, patt3.exec(arr[1]) - 1),
+						"name" : patt2.exec(arr[1])
+					});
+					arr[1] = arr[1].substring(patt.exec(arr[1]), arr[1].length);
+				} else if (patt2.test(arr[1])) {
+					emoteleft = true;
+					res.push({
+						"id" : "",
+						"name" : patt2.exec(arr[1])
+					});
+					arr[1] = arr[1].substring(patt2.exec(arr[1]), arr[1].length);
+				} else {
+					emoteleft = false;
+				}
 			}
 		}
 		return res;
@@ -381,6 +493,38 @@ var serverfunc = (function () {
 			};
 		}
 		return false;
+	};
+	function checkincomplete() {
+		var missininfo = false, maxemotes = 0, temp = {};
+
+		for (var i = 0; i < incomplete.length; i++) {
+			if (checkinfo(incomplete[i])) {
+				if (incomplete[i].link.length > 0 || !incomplete[i].linkreq) {
+					temp = incomplete[i];
+					incomplete.splice(i, 1);
+					obj.addserver(temp);
+				} else {
+					temp = incomplete[i];
+					incomplete.splice(i, 1);
+					deadlist.push(temp);
+				}
+			}
+		}
+	};
+	function checkinfo(server) {
+		var missininfo = false, maxemotes = 0, temp = {};
+
+		maxemotes = Math.max(server.emotes.managed.length, server.emotes.unmanaged.length);
+		if (incomplete[i].name.length === 0) {
+			missininfo = true;
+		} else if (maxemotes === 0) {
+			missininfo = true;
+		}
+		if (!missininfo) {
+			return true;
+		} else {
+			return false;
+		}
 	};
 	function writejsonfile() {
 		/*

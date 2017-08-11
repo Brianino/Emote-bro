@@ -18,6 +18,7 @@ bot.on('ready', () => {
 });
 
 function linkcommands () {
+	//Assings the functions for each command
 	commands.setrun("count", false, function (msg) {
 		if (msg.deletable) {
 			msg.delete();
@@ -106,7 +107,7 @@ function linkcommands () {
 			};
 		}
 		if (patt.test(str)) {
-			str.replace(patt, patt2.exec(str));
+			str = patt2.exec(str);
 		}
 		for (var i = 0; i < count; i++) {
 			temp = servers.server(i);
@@ -187,6 +188,28 @@ function linkcommands () {
 			}
 		}
 	});
+	commands.setrun("probs", false, function(msg) {
+		var embedobj = {}, obj = [];
+		if (msg.deletable) {
+			msg.delete();
+		}
+		obj = servers.getprops();
+		embedobj = {
+			"title" : "Editable Properties",
+			"description" : "The server properties that can be edited",
+			"color" : 0xFF0000,
+			"fields" : []
+		};
+		for (var i = 0; i < obj.length; i++) {
+			embedobj.fields.push({
+				"name" : obj[i].prop,
+				"value" : obj[i].type
+			});
+		};
+		msg.channel.send({embed: embedobj}).then((msg) => {
+			msgtimer(30, msg);
+		});
+	});
 	commands.setrun("read", true, function (msg, str) {
 		var attachments = Array.from(msg.attachments), url = "";
 		const fs = require('fs');
@@ -214,15 +237,21 @@ function linkcommands () {
 				return console.log(err.message);
 			}
 			console.log("Loaded update file!");
-			readobj(JSON.parse(data));
+			try {
+				readobj(JSON.parse(data));
+			} catch (e) {
+				console.log(e.message);
+				throw {
+					"name" : "invalid usage",
+					"message" : e.message
+				};
+			}
 		});
 	});
 	commands.setrun("add", true, function (msg, str) {
 		var parts = str.split(" "), id = 0;
 		var lvl = 0;
 
-		//run getuser function, (get user id from mention or name)
-		//only grab user from list of server members
 		if (msg.deletable) {
 			msg.delete();
 		}
@@ -281,13 +310,15 @@ function linkcommands () {
 		if (msg.deletable) {
 			msg.delete();
 		}
+		//get channel
+		channel = getchannel(msg, parts[0]);
 		if (parts.length > 1) {
-			//get channel in server
-			channel = parseInt(parts[0]);
 			if (parts[1] === 'add') {
 				//run add
+				globals.blacklistadd(channel);
 			} else if (parts[1] === 'remove') {
 				//run remove
+				globals.blacklistremove(channel);
 			} else {
 				throw {
 					"name" : "invalid usage",
@@ -296,6 +327,7 @@ function linkcommands () {
 			}
 		} else {
 			//run add
+			globals.blacklistadd(channel);
 		}
 	});
 	commands.setrun("prefix", true, function (msg, str) {
@@ -350,12 +382,13 @@ function linkcommands () {
 
 bot.on('message', (message) => {
 	var content = '', sections = [], com = '', perms = 0, prefix = '';
-	var temp = [];
+	var temp = [], startswithp = false;
 
 	prefix = globals.p(message.guild.id);
+	startswithp = message.content.startsWith(prefix);
 	console.log(message.content);
-	if (!runcheck(message)) {
-		if (message.content.startsWith(prefix)) {
+	if (!runcheck(message, startswithp)) {
+		if (startswithp) {
 			console.log(msg.author.username + " tried " + com);
 			content = message.content.substring(prefix.length);
 			temp = content.split("\n");
@@ -368,8 +401,8 @@ bot.on('message', (message) => {
 			} else {
 				sections.pop();
 			}
-			perms = globals.getperms(message.author.id, message.guild.id);
-			if (perms >= commands.getperms(com)) {
+			if (hasperms(msg, com)) {
+				perms = globals.getperms(message.author.id, message.guild.id);
 				if (commands.reqinput(com)) {
 					for (var i = 0; i < sections.length; i++) {
 						if (sections[i] === "" || sections[i] === null || sections[i] === undefined) {
@@ -378,7 +411,14 @@ bot.on('message', (message) => {
 						}
 					}
 					try {
-						if (com === 'test') {
+						if (com === 'help') {
+							if (sections.length == 0) {
+								content = "";
+							} else {
+								content = sections.join(" ")
+							}
+							commands[com].run(message, perms, prefix, content);
+						} else if (com === 'test') {
 							commands[com].run(message, content.substring(content.search("\n") + 2));
 						} else {
 							commands[com].run(message, sections.join(" "));
@@ -393,49 +433,33 @@ bot.on('message', (message) => {
 						}
 					}
 				} else {
-					if (com === 'help') {
-						try {
-							commands[com].run(message, perms, prefix);
-						} catch (e) {
-							if (e.message === 'invalid usage') {
-								message.reply("correct usage is `" + prefix + commands.getusage(com) + "`");
-							} else {
-								console.log("Error running: " + com);
-								console.log(e.message);
-							}
-						}
-					} else {
-						try {
-							commands[com].run(message);
-						}  catch (e) {
-							if (e.message === 'invalid usage') {
-								message.reply("correct usage is `" + prefix + commands.getusage(com) + "`");
-							}  else {
-								console.log("Error running: " + com);
-								console.log(e.message);
-								message.reply("Invalid input, please try" + 
-									" `.[command] <input>`, or `.help` to see the commands");
-							}
+					try {
+						commands[com].run(message);
+					}  catch (e) {
+						if (e.message === 'invalid usage') {
+							message.reply("correct usage is `" + prefix + commands.getusage(com) + "`");
+						}  else {
+							console.log("Error running: " + com);
+							console.log(e.message);
+							message.reply("Invalid input, please try `" + prefix +
+								"[command] <input>`, or `" + prefix + "help` to see the commands");
 						}
 					}
 				}
 			}
+		} else {
+			checklink(msg.content);
 		}
 	}
 });
 
-function runcheck (msg) {
+function runcheck (msg, startswithp) {
 	var parts = [], page = 0, input = 0, obj = {};
 
 	if (msg.content.length < 1) {
 		return true;
 	}
-	if (!globals.verifychannel(msg.channel.id)) {
-		if (globals.getperms(msg.author.id, msg.guild.id) <== 0) {
-			return true;
-		}
-	}
-	if (searchqueue.verifychannel(msg.author.id, msg.channel.id)) {
+	if (searchqueue.verifychannel(msg.author.id, msg.channel.id) && !startswithp) {
 		if (parseInt(msg.content) == NaN) {
 			parts = msg.content.split(" ");
 			if (parts(0) == 'page') {
@@ -470,8 +494,54 @@ function runcheck (msg) {
 			}
 			return true;
 		}
+	} else {
+		if (!globals.verifychannel(msg.channel.id)) {
+			if (globals.getperms(msg.author.id, msg.guild.id) <= 0) {
+				return true;
+			}
+		}
 	}
 	return false;
+};
+
+function hasperms(msg, com) {
+	var perms = globals.getperms(message.author.id, message.guild.id);
+	if (perms == 0) {
+		if (hasflag(msg, 'MANAGE_GUILD') || hasflag(msg, 'MANAGE_ROLES')) {
+			globals.increaseperms(config.owner, msg.author.id, msg.guild.id, 2);
+		} else if (hasflag(msg, 'MANAGE_MESSAGES') || hasflag(msg, 'MANAGE_CHANNELS')) {
+			globals.increaseperms(config.owner, msg.author.id, msg.guild.id, 1);
+		}
+	}
+	if (hasflag(msg, commands.getflag(com))) {
+		if (perms >= commands.getperms(com)) {
+			return true;
+		} else {
+			if (msg.deletable) {
+				msg.delete();
+			}
+			msg.reply("Missing Perm Level: " + commands.getperms(com));
+		}
+	} else {
+		if (commands.getflag(com) != null) {
+			if (msg.deletable) {
+				msg.delete();
+			}
+			msg.reply("Missing Flag: " + commands.getflag(com));
+		}
+	}
+	return false;
+};
+
+function hasflag(msg, flag = "SEND_MESSAGES") {
+	var flags = msg.member.permissions.FlAGS;
+
+	try {
+		return flags[flag]
+	} catch (e) {
+		console.log(e.message);
+		return false;
+	}
 };
 
 function dispserver (msg, index) {
@@ -488,8 +558,11 @@ function dispserver (msg, index) {
 			"height" : 50,
 			"width" : 50
 		},
-		"fields" : []
-	}
+		"fields" : [],
+		"footer" : {
+			"text" : "ID: " + server.id
+		}
+	};
 	lim = Math.max(server.emotes.managed.length, server.emotes.unmanaged.length);
 	for (var i = 0; i < lim; i++) {
 		if (i < server.emotes.managed.length) {
@@ -527,7 +600,7 @@ function dispserver (msg, index) {
 			}
 			msg.channel.send({embed: embedobj}).then((msg) => {
 				searchqueue.updateuser(user, msg);
-				//msgtimer(60, msg);
+				msgtimer(60, msg);
 			});
 		}).catch(e => {
 			embedobj.description = "Dead Invite Link";
@@ -538,7 +611,7 @@ function dispserver (msg, index) {
 		embedobj.description = "Request Invite";
 		msg.channel.send({embed: embedobj}).then((msg) => {
 			searchqueue.updateuser(user, msg);
-			//msgtimer(60, msg);
+			msgtimer(60, msg);
 		});
 	}
 };
@@ -582,7 +655,7 @@ function disppage (msg, page) {
 		} else {
 			throw {
 				"name" : "invalid type",
-				"message" : "search type not reognised"
+				"message" : "search type not recognised"
 			}
 		}
 	}
@@ -682,12 +755,12 @@ function getuser(msg, input) {
 		for (var i = 0; i < members.length; i++) {
 			if (input == members[i].id) {
 				return members[i].id;
-			} else if (input === members.nickname) {
+			} else if (input === members[i].nickname) {
 				return members[i].id;
-			} else if (input === members.user.username) {
+			} else if (input === members[i].user.username) {
 				return members[i].id;
-			} else if (members.nickname.includes(input) || members.user.username.includes(input)) {
-				temp = Math.min(members.nickname.length - input.length, members.user.username.length - input.length);
+			} else if (members[i].nickname.includes(input) || members[i].user.username.includes(input)) {
+				temp = Math.min(members[i].nickname.length - input.length, members[i].user.username.length - input.length);
 				if (temp < bestmatch) {
 					bestmatchi = i;
 					bestmatch = temp;
@@ -705,8 +778,60 @@ function getuser(msg, input) {
 	}
 };
 
-function checklink (link) {
+function getchannel(msg, input) {
+	var mentions = Array.from(msg.mentions.channels);
+	var channels = Array.from(msg.guild.channels);
+	var bestmatch = input.length + 1, bestmatchi = -1, temp = 0;
 
+	if (mentions.length > 0) {
+		return mentions[0].id;
+	} else if (mentions.length > 1) {
+		throw {
+			"name" : "invalid usage",
+			"mention" : "too many mentions"
+		};
+	} else {
+		for (var i = 0; i < channels.length; i++) {
+			if (input == channels[i].id) {
+				return channels[i].id;
+			} else if (input === channels[i].name) {
+				return channels[i].id;
+			} else if (channels.name.includes(input)) {
+				temp = channels.name.length;
+				if (temp < bestmatch) {
+					bestmatchi = i;
+					bestmatch = temp;
+				}
+			}
+		}
+		if (bestmatchi > -1) {
+			return channels[bestmatchi].id;
+		} else {
+			throw {
+				"name" : "channel not found",
+				"message" : "channel doesnt exist"
+			}
+		}
+	}
+};
+
+function checklink (input) {
+	var patt = /(https?:\/\/)?discord\.gg\/[A-Za-z0-9]+/, link = "";
+	var index = 0, link = "";
+
+	while (patt.test(input)) {
+		index = input.find(patt);
+		link = patt.exec(input);
+		bot.fetchlink(link).then((invite) => {
+			if (true) {
+				//only perm no limit invites get here
+				servers.updateserver(invite.guild.id, 'name', invite.guild.name);
+				servers.updateserver(invite.duild.id, 'link', invite.url);
+			}
+		});
+		index = index + link.length;
+		input = input.substring(index, input.length);
+	}
 };
 
 function timer (seconds, id) {
