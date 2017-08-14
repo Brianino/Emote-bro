@@ -381,6 +381,13 @@ var serverfunc = (function () {
 			return null;
 		}
 	};
+	obj.getincomplete = function () {
+		if (incomplete.length > 0) {
+			return incomplete;
+		} else {
+			return null;
+		}
+	};
 	obj.getincompleteprops = function () {
 		var res = [], maxemotes = 0, useid = false;
 

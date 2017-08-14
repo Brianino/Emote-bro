@@ -823,10 +823,67 @@ function checklink (input) {
 		index = input.find(patt);
 		link = patt.exec(input);
 		bot.fetchlink(link).then((invite) => {
-			if (true) {
-				//only perm no limit invites get here
-				servers.updateserver(invite.guild.id, 'name', invite.guild.name);
-				servers.updateserver(invite.duild.id, 'link', invite.url);
+			var server = {}, deadlist = [], incomplete = [], max = 0;
+			var counter = 0, found = false;
+
+			servers.updateserver(invite.guild.id, 'name', invite.guild.name);
+			try {
+				server = servers.findbyid(invite.guild.id);
+			} catch (e) {
+				if (typeof(e) === 'number') {
+					server.link = "";
+					deadlist = servers.getdeadlist();
+					incomplete = servers.getincomplete();
+					if (deadlist === null) {
+						deadlist = [];
+					}; if (incomplete === null) {
+						incomplete = [];
+					};
+					max = Math.max(deadlist.length, incomplete.length);
+					while (counter < max && !found) {
+						if (counter < deadlist.length) {
+							if (deadlist[counter].id == invite.guild.id) {
+								found = true;
+								server = deadlist[counter];
+							}
+						}
+						if (counter < incomplete.length && !found) {
+							if (incomplete[counter].id == invite.guild.id) {
+								found = true;
+								server = incomplete[counter];
+							}
+						}
+						counter++;
+					}
+				} else {
+					console.log(e.message);
+				}
+			}
+			if (!found || !patt.test(server.link)) {
+				//If no existing link or server to test against
+				servers.updateserver(invite.guild.id, 'link', invite.url);
+			} else {
+				bot.fetchlink(server.link).then((oldinv) => {
+					try {
+						if (oldinv.maxAge < invite.maxAge) {
+							servers.updateserver(invite.guild.id, 'link', invite.url);
+						} else if (oldinv.maxAge === invite.maxAge) {
+							if (oldinv.maxUses <= invite.maxUses) {
+								servers.updateserver(invite.guild.id, 'link', invite.url);
+							} else {
+								console.log(server.name + " has a link with more uses");
+							}
+						} else {
+							console.log(server.name + " has a longer lasting link");
+						}
+					} catch (e) {
+						console.log(e.message);
+						servers.updateserver(invite.guild.id, 'link', invite.url);
+					}
+				}).catch(e => {
+					console.log(e.message);
+					servers.updateserver(invite.guild.id, 'link', invite.url);
+				});
 			}
 		});
 		index = index + link.length;
