@@ -1,10 +1,10 @@
 var searches = (function () {
 	var userqueue = [], obj = {};
 
-	obj.addusertoqueue = function (id, channel, searchresult, type) {
+	obj.addusertoqueue = function (id, channel, searchresult, typestr) {
 		var found = false, i = 0;
 		while (!found && i < userqueue.length) {
-			if (userqueue[i].id === id) {
+			if (userqueue[i].id == id) {
 				found = true;
 				try {
 					userqueue[i].list.delete();
@@ -13,7 +13,7 @@ var searches = (function () {
 					userqueue[i].msg.delete();
 				} catch (e) {};
 				userqueue[i].channel = channel;
-				userqueue[i].type = type;
+				userqueue[i].type = typestr;
 				userqueue[i].res = searchresult;
 				userqueue[i].list = {};
 				userqueue[i].msg = {};
@@ -26,19 +26,19 @@ var searches = (function () {
 			userqueue.push({
 				"id" : id,
 				"channel" : channel,
-				"type" : type,
+				"type" : typestr,
 				"res" : searchresult,
 				"list" : {},
 				"msg" : {},
 				"page" : 0,
 				"lim" : 0,
 				"timecount" : 0
-			})
+			});
 		}
 	};
 	obj.updateuser = function (id, msg = {}, islist = false, page = 0, lim = 0) {
 		for (var i = 0; i < userqueue.length; i++) {
-			if (userqueue[i].id === id) {
+			if (userqueue[i].id == id) {
 				if (islist) {
 					try {
 						if (userqueue[i].list.deletable) {
@@ -56,16 +56,17 @@ var searches = (function () {
 					} catch (e) {};
 					userqueue[i].msg = msg;
 				}
+				return;
 			}
 		}
 		throw {
 			"name" : "Object Error",
-			"message" : "Unable to find user in queue"
+			"message" : "Unable to find user in queue " + id
 		}
 	}
 	obj.getusersearch = function (id) {
 		for (var i = 0; i < userqueue.length; i++) {
-			if (userqueue[i].id === id) {
+			if (userqueue[i].id == id) {
 				return {
 					"res" : userqueue[i].res,
 					"type" : userqueue[i].type,
@@ -80,7 +81,7 @@ var searches = (function () {
 	};
 	obj.removeuser = function (id) {
 		for (var i = 0; i < userqueue.length; i++) {
-			if (userqueue[i].id === id) {
+			if (userqueue[i].id == id) {
 				userqueue.splice(i, 1);
 				return true;
 			}
@@ -89,8 +90,8 @@ var searches = (function () {
 	};
 	obj.verifychannel = function (id, channel) {
 		for (var i = 0; i < userqueue.length; i++) {
-			if (userqueue[i].id === id) {
-				if (userqueue[i].channel === channel) {
+			if (userqueue[i].id == id) {
+				if (userqueue[i].channel == channel) {
 					return true;
 				} else {
 					return false;
@@ -110,8 +111,8 @@ var searches = (function () {
 		var found = false, counter = 0;
 		for (var i = 0; i < userqueue.length; i++) {
 			while (counter < userqueue[i].res.length && !found) {
-				if (userqueue[i].res[j] == index) {
-					userqueue[i].splice(j, 1);
+				if (userqueue[i].res[counter] === index) {
+					userqueue[i].res.splice(counter, 1);
 					found = true;
 				}
 				counter++;
@@ -122,7 +123,7 @@ var searches = (function () {
 	};
 	obj.timeadd = function (id) {
 		for (var i = 0; i < userqueue.length; i++) {
-			if (userqueue[i].id === id) {
+			if (userqueue[i].id == id) {
 				userqueue[i].timecount++;
 				return true;
 			}
@@ -131,9 +132,9 @@ var searches = (function () {
 	};
 	obj.timesub = function (id) {
 		for (var i = 0; i < userqueue.length; i++) {
-			if (userqueue[i].id === id) {
+			if (userqueue[i].id == id) {
 				userqueue[i].timecount--;
-				if (userqueue[i].timecount == 0) {
+				if (userqueue[i].timecount === 0) {
 					return true;
 				} else {
 					return false;
@@ -147,7 +148,7 @@ var searches = (function () {
 	};
 	function getuser (id) {
 		for (var i = 0; i < userqueue.length; i++) {
-			if (userqueue[i].id === id) {
+			if (userqueue[i].id == id) {
 				return i;
 			}
 		}

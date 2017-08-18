@@ -104,15 +104,15 @@ var serverfunc = (function () {
 			try {
 				if (!isdeadlist) {
 					servers[index][prop] = input;
-					if (!checkinfo(servers[i])) {
+					if (!checkinfo(servers[index])) {
 						incomplete.push(servers[index]);
 						servers.splice(index, 1);
-					} else if (servers[index].linkreq && servers.link.length === 0) {
+					} else if (servers[index].linkreq && servers[index].link.length === 0) {
 						obj.deadlistserver(index);
 					}
 				} else if (!newserver) {
 					deadlist[index][prop] = input;
-					if (!checkinfo(deadlist[i])) {
+					if (!checkinfo(deadlist[index])) {
 						incomplete.push(deadlist[index]);
 						deadlist.splice(index, 1);
 					} else if (prop === 'link') {
@@ -183,7 +183,11 @@ var serverfunc = (function () {
 		} else if (servers.length == 0 || index < 0) {
 			return null;
 		}
-		return servers[index][prop];
+		try {
+			return servers[index][prop];
+		} catch (e) {
+			console.log(index + ", " + prop + ": " + e.message);
+		}
 	};
 	obj.checkprop = function (prop) {
 		for (var name in servers[0]) {
@@ -205,14 +209,8 @@ var serverfunc = (function () {
 			"icon" : "",
 			"linkreq" : null,
 			"emotes" : {
-				"managed" : [{
-					"id" : 0,
-					"name" : ""
-				}],
-				"unmanaged" : [{
-					"id" : 0,
-					"name" : ""
-				}]
+				"managed" : [],
+				"unmanaged" : []
 			}
 		}
 		if (typeof(server.id) === 'string') {
@@ -238,8 +236,8 @@ var serverfunc = (function () {
 			console.log(temp.name + " link missing");
 		}
 		try {
-			temp.linkreq = serverList[i].linkreq;
-			if (server.linkreq === undefined) {
+			temp.linkreq = server[i].linkreq;
+			if (temp.linkreq === undefined) {
 				if (server.link === "") {
 					temp.linkreq = false;
 				} else {
@@ -271,6 +269,10 @@ var serverfunc = (function () {
 						"id" : server.emotes.managed[i].id,
 						"name" : server.emotes.managed[i].name
 					});
+					if (temp.emotes.managed[temp.emotes.managed.length - 1].name === undefined) {
+						temp.emotes.managed[temp.emotes.managed.length - 1].id = -1;
+						temp.emotes.managed[temp.emotes.managed.length - 1].name = server.emotes.managed[i];
+					}
 				} catch (e) {
 					temp.emotes.managed.push({
 						"id" : -1,
@@ -284,6 +286,10 @@ var serverfunc = (function () {
 						"id" : server.emotes.unmanaged[i].id,
 						"name" : server.emotes.unmanaged[i].name
 					});
+					if (temp.emotes.unmanaged[temp.emotes.unmanaged.length - 1].name === undefined) {
+						temp.emotes.unmanaged[temp.emotes.unmanaged.length - 1].id = -1;
+						temp.emotes.unmanaged[temp.emotes.unmanaged.length - 1].name = server.emotes.unmanaged[i];
+					}
 				} catch (e) {
 					temp.emotes.unmanaged.push({
 						"id" : -1,
@@ -322,7 +328,12 @@ var serverfunc = (function () {
 			sorted = false;
 		}
 		for (var i = 0; i < serverlist.length; i++) {
-			obj.addserver(serverlist[i]);
+			try {
+				obj.addserver(serverlist[i]);
+			} catch (e) {
+				console.log("error adding server " + serverlist[i].name);
+				console.log("error: " + e.message);
+			}
 		}
 	};
 	obj.findbyid = function (id) {
@@ -519,10 +530,11 @@ var serverfunc = (function () {
 		}
 	};
 	function checkinfo(server) {
-		var missininfo = false, maxemotes = 0, temp = {};
+		var missininfo = false, maxemotes = 0, temp = "";
 
 		maxemotes = Math.max(server.emotes.managed.length, server.emotes.unmanaged.length);
-		if (incomplete[i].name.length === 0) {
+		temp = server.name;
+		if (temp.length === 0) {
 			missininfo = true;
 		} else if (maxemotes === 0) {
 			missininfo = true;
@@ -564,7 +576,7 @@ var serverfunc = (function () {
 			if(err) {
 				return console.log(err.message);
 			}
-			console.log("Servers saved!");
+			console.log("Dead Servers saved!");
 		});
 	};
 	function readdeadlistfile() {

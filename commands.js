@@ -5,7 +5,7 @@ commands.setrun = function (com, reqinput = false, method) {
 		this[com].reqinput = reqinput;
 		this[com].run = method;
 	} catch (e) {
-		console.log(e.message);
+		console.log(com + ': ' + e.message);
 	}
 };
 commands.getperms = function (com) {
@@ -46,6 +46,7 @@ commands.getusage = function (com) {
 commands.help = {
 	"description" : "Show all available commands",
 	"permlevel" : 0,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "help <command>",
 	"reqinput" : true,
 	"run" : function (msg, perm, prefix = ".", input = "") {
@@ -74,7 +75,7 @@ commands.help = {
 			embedobj.title = input;
 			try {
 				embedobj.description = "Description: " + commands[input].description + "\n" +
-				"Usage: " + commands[input].correctusage;
+				"Usage: " + prefix + commands[input].correctusage;
 			} catch (e) {
 				throw {
 					"name" : "invalid usage",
@@ -88,6 +89,7 @@ commands.help = {
 commands.count = {
 	"description" : "Display stored server count",
 	"permlevel" : 0,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "count",
 	"reqinput" : false,
 	"run" : function () {
@@ -97,6 +99,7 @@ commands.count = {
 commands.disp = {
 	"description" : "Display server at specified array index",
 	"permlevel" : 1,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "disp [index]",
 	"reqinput" : false,
 	"run" : function () {
@@ -106,6 +109,7 @@ commands.disp = {
 commands.id = {
 	"description" : "Search for a server by guild id",
 	"permlevel" : 0,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "id [server id]",
 	"reqinput" : false,
 	"run" : function () {
@@ -115,6 +119,7 @@ commands.id = {
 commands.name = {
 	"description" : "Search for a server by guild name",
 	"permlevel" : 0,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "name [server name]",
 	"reqinput" : false,
 	"run" : function () {
@@ -124,6 +129,7 @@ commands.name = {
 commands.emote = {
 	"description" : "Search for an emote",
 	"permlevel" : 0,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "emote [emote name]",
 	"reqinput" : false,
 	"run" : function () {
@@ -133,15 +139,27 @@ commands.emote = {
 commands.edit = {
 	"description" : "Edit server properties",
 	"permlevel" : 1,
+	"flag" : "MANAGE_MESSAGES",
 	"correctusage" : "edit <server id> [property name] [new value]",
 	"reqinput" : false,
 	"run" : function () {
 		//Edit server properties
 	}
 };
+commands.props = {
+	"description" : "Display server editable properties",
+	"permlevel" : 1,
+	"flag" : "MANAGE_MESSAGES",
+	"correctusage" : "read [.json file attatched]",
+	"reqinput" : false,
+	"run" : function () {
+		//Display server editable properties
+	}
+};
 commands.read = {
 	"description" : "Read server data from json file",
 	"permlevel" : 1,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "read [.json file attatched]",
 	"reqinput" : false,
 	"run" : function () {
@@ -151,6 +169,7 @@ commands.read = {
 commands.add = {
 	"description" : "Increase specified user perms",
 	"permlevel" : 1,
+	"flag" : "MANAGE_ROLES",
 	"correctusage" : "add [user] <ammount to add>",
 	"reqinput" : false,
 	"run" : function () {
@@ -160,6 +179,7 @@ commands.add = {
 commands.remove = {
 	"description" : "Lower specified user perms",
 	"permlevel" : 1,
+	"flag" : "MANAGE_ROLES",
 	"correctusage" : "remove [user] <ammount to subtract>",
 	"reqinput" : false,
 	"run" : function () {
@@ -169,6 +189,7 @@ commands.remove = {
 commands.blacklist = {
 	"description" : "Add channels to blacklist to ignore them, or remove them from the blacklist",
 	"permlevel" : 1,
+	"flag" : "MANAGE_GUILD",
 	"correctusage" : "blacklist [channel] <add/remove>",
 	"reqinput" : false,
 	"run" : function () {
@@ -178,6 +199,7 @@ commands.blacklist = {
 commands.prefix = {
 	"description" : "Change bot command prefix",
 	"permlevel" : 2,
+	"flag" : "MANAGE_GUILD",
 	"correctusage" : "prefix [new prefix]",
 	"reqinput" : false,
 	"run" : function () {
@@ -187,6 +209,7 @@ commands.prefix = {
 commands.refresh = {
 	"description" : "Refresh server list",
 	"permlevel" : 9,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "refresh",
 	"reqinput" : false,
 	"run" : function () {
@@ -196,6 +219,7 @@ commands.refresh = {
 commands.log = {
 	"description" : "Log global vars",
 	"permlevel" : 10,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "log",
 	"reqinput" : false,
 	"run" : function () {
@@ -205,6 +229,7 @@ commands.log = {
 commands.quit = {
 	"description" : "Shutdown bot",
 	"permlevel" : 9,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "shutdown",
 	"reqinput" : false,
 	"run" : function () {
@@ -214,6 +239,7 @@ commands.quit = {
 commands.test = {
 	"description" : "For Developer only",
 	"permlevel" : 10,
+	"flag" : "SEND_MESSAGES",
 	"correctusage" : "",
 	"reqinput" : true,
 	"run" : function (msg, input) {
