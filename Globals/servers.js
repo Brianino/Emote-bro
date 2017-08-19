@@ -1,7 +1,5 @@
 const config = require('./../config.js');
 const crypto = require('crypto');
-const cipher = crypto.createCipher('aes256', config.password);
-const decipher = crypto.createDecipher('aes256', config.password);
 
 var serverfunc = (function () {
 	var servers = [], obj = {}, incomplete = [];
@@ -113,6 +111,7 @@ var serverfunc = (function () {
 					if (!checkinfo(servers[index])) {
 						incomplete.push(servers[index]);
 						servers.splice(index, 1);
+						writeincompletelistfile();
 					} else if (servers[index].linkreq && servers[index].link.length === 0) {
 						obj.deadlistserver(index);
 					}
@@ -122,18 +121,19 @@ var serverfunc = (function () {
 					if (!checkinfo(deadlist[index])) {
 						incomplete.push(deadlist[index]);
 						deadlist.splice(index, 1);
-						writedeadlistfile();
+						writeincompletelistfile();
 					} else if (prop === 'link') {
 						temp = deadlist[index];
 						deadlist.splice(index, 1);
 						obj.addserver(temp);
 						writejsonfile();
-						writedeadlistfile();
 					} else if (!deadlist[index].linkreq) {
 						temp = deadlist[index];
 						deadlist.splice(index, 1);
 						obj.addserver(temp);
+						writejsonfile();
 					}
+					writedeadlistfile();
 				} else {
 					incomplete[index][prop] = input;
 					checkincomplete();
@@ -149,6 +149,7 @@ var serverfunc = (function () {
 					if (!checkinfo(servers[index])) {
 						incomplete.push(servers[index]);
 						servers.splice(index, 1);
+						writeincompletelistfile();
 					}
 					writejsonfile();
 				} else if (!newserver) {
@@ -156,7 +157,9 @@ var serverfunc = (function () {
 					if (!checkinfo(deadlist[index])) {
 						incomplete.push(deadlist[index]);
 						deadlist.splice(index, 1);
+						writeincompletelistfile();
 					}
+					writedeadlistfile();
 				} else {
 					incomplete[index].emotes[prop] = emotearr;
 					checkincomplete();
@@ -399,6 +402,7 @@ var serverfunc = (function () {
 			deadlist.push(servers[index]);
 			servers.splice(index, 1);
 			writedeadlistfile();
+			writejsonfile();
 		}
 	};
 	obj.getdeadlist = function () {
@@ -451,7 +455,7 @@ var serverfunc = (function () {
 
 		do {
 			swap = false;
-			for (var i = 0; i < servers.length; i++) {
+			for (var i = 0; i < servers.length - 1 - counter; i++) {
 				if (servers[i].id > servers[i + 1].id) {
 					temp = servers[i];
 					servers[i] = servers[i + 1];
@@ -556,6 +560,7 @@ var serverfunc = (function () {
 		/*
 		* WRITE AND STORE SERVER DATA TO FILE
 		*/
+		const cipher = crypto.createCipher('aes256', config.password);
 		let ciphertext = cipher.update(JSON.stringify(servers), 'utf8', 'hex');
 		ciphertext += cipher.final('hex')
 		fs.writeFile("Files/ServerList.json", ciphertext, function(err) {
@@ -569,6 +574,7 @@ var serverfunc = (function () {
 		/*
 		* READ AND STORE SERVER DATA FROM A FILE
 		*/
+		const decipher = crypto.createDecipher('aes256', config.password);
 		var temp = {};
 		fs.readFile("Files/ServerList.json", "utf8", function read(err, data) {
 			if(err) {
@@ -589,6 +595,7 @@ var serverfunc = (function () {
 		/*
 		* WRITE AND STORE DEAD SERVER DATA TO FILE
 		*/
+		const cipher = crypto.createCipher('aes256', config.password);
 		let ciphertext = cipher.update(JSON.stringify(deadlist), 'utf8', 'hex');
 		ciphertext += cipher.final('hex')
 		fs.writeFile("Files/DeadList.json", ciphertext, function(err) {
@@ -602,6 +609,7 @@ var serverfunc = (function () {
 		/*
 		* READ AND STORE DEAD SERVER DATA FROM A FILE
 		*/
+		const decipher = crypto.createDecipher('aes256', config.password);
 		var temp = {};
 		fs.readFile("Files/DeadList.json", "utf8", function read(err, data) {
 			if(err) {
@@ -622,6 +630,7 @@ var serverfunc = (function () {
 		/*
 		* WRITE AND STORE INCOMPLETE SERVER DATA TO FILE
 		*/
+		const cipher = crypto.createCipher('aes256', config.password);
 		let ciphertext = cipher.update(JSON.stringify(deadlist), 'utf8', 'hex');
 		ciphertext += cipher.final('hex')
 		fs.writeFile("Files/Incompletelist.json", ciphertext, function(err) {
@@ -635,6 +644,7 @@ var serverfunc = (function () {
 		/*
 		* READ AND STORE INCOMPLETE SERVER DATA FROM A FILE
 		*/
+		const decipher = crypto.createDecipher('aes256', config.password);
 		var temp = {};
 		fs.readFile("Files/Incompletelist.json", "utf8", function read(err, data) {
 			if(err) {

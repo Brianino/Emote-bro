@@ -79,14 +79,14 @@ function linkcommands () {
 		for (var i = 0; i < count; i++) {
 			temp = servers.prop(i, 'name').toLowerCase();
 			if (temp.includes(str)) {
-				found.push(i);
+				found.push(temp.prop(i, 'id'));
 			}
 		}
 		console.log("Found: " + found.length);
 		if (found.length == 0) {
 			msg.reply("unable to find server");
 		} else if (found.length == 1) {
-			dispserver(msg, found[0]);
+			dispserver(msg, servers.findbyid(found[0]));
 		} else {
 			try {
 				searchqueue.addusertoqueue(msg.author.id, msg.channel.id, found, 'name');
@@ -113,7 +113,7 @@ function linkcommands () {
 			};
 		}
 		if (patt.test(str)) {
-			str = string(patt2.exec(str));
+			str = String(patt2.exec(str));
 		}
 		str = str.toLowerCase();
 		console.log("Search: " + str);
@@ -125,7 +125,7 @@ function linkcommands () {
 					if (temp.emotes.managed[j].name.toLowerCase().includes(str)) {
 						if (!found) {
 							res.push({
-								"index" : i,
+								"id" : temp.id,
 								"managed" : 0,
 								"unmanaged" : 0
 							});
@@ -138,7 +138,7 @@ function linkcommands () {
 					if (temp.emotes.unmanaged[j].name.toLowerCase().includes(str)) {
 						if (!found) {
 							res.push({
-								"index" : i,
+								"id" : temp.id,
 								"managed" : 0,
 								"unmanaged" : 0
 							});
@@ -154,7 +154,7 @@ function linkcommands () {
 		if (res.length === 0) {
 			msg.reply("unable to find server");
 		} else if (res.length === 1) {
-			dispserver(msg, res[0].index);
+			dispserver(msg, servers.findbyid(res[0].id));
 		} else {
 			searchqueue.addusertoqueue(msg.author.id, msg.channel.id, res, 'emote');
 			timer(60, msg.author.id);
@@ -526,14 +526,11 @@ function runcheck (msg, startswithp) {
 					input = max;
 				}
 				if (obj != null) {
-					try {
-						obj.msg.delete()
-					} catch (e) {}
 					timer(60, msg.author.id);
 					if (obj.type === 'name') {
-						dispserver(msg, obj.res[(obj.page * obj.lim) + input]);
+						dispserver(msg, servers.findbyid(obj.res[(obj.page * obj.lim) + input]));
 					} else if (obj.type === 'emote') {
-						dispserver(msg, obj.res[(obj.page * obj.lim) + input].index);
+						dispserver(msg, servers.findbyid(obj.res[(obj.page * obj.lim) + input].id));
 					}
 				}
 			}
@@ -653,8 +650,10 @@ function dispserver (msg, index) {
 		}).catch((e) => {
 			if (server.linkreq) {
 				embedobj.description = "Dead Invite Link";
-				searchqueue.deadlistserver(index);
+				searchqueue.deadlistserver(server.id);
 				servers.deadlistserver(index);
+				let page = searchqueue.getusersearch(msg.author.id).page;
+				disppage(msg, page);
 			} else {
 				embedobj.description = "Request Invite";
 				servers.updateserver(server.id, 'link', "");
@@ -700,18 +699,16 @@ function disppage (msg, page) {
 			"text" : "Page " + page + "/" + maxpage
 		}
 	}
-	console.log(max + " " + min);
 	for (var i = min; i < max; i++) {
-		console.log("i: " + i + ", max: " + max);
 		if (obj.type === 'name') {
-			server = servers.server(obj.res[i]);
+			server = servers.server(servers.findbyid(obj.res[i]));
 			embedobj.fields.push({
 				"name" : (i - min) + " - " + server.name,
 				"value" : "ID: " + server.id,
 				"inline" : false
 			});
 		} else if (obj.type === 'emote') {
-			server = servers.server(obj.res[i].index);
+			server = servers.server(servers.findbyid(obj.res[i].id));
 			embedobj.fields.push({
 				"name" : (i - min) + " - " + server.name,
 				"value" : "Global Matches: " + obj.res[i].managed + 
@@ -1006,9 +1003,7 @@ function msgtimer (seconds, msg) {
 				if (msg.deletable) {
 					msg.delete().then(() => {
 						console.log("message " + msg.id + " deleted");
-					}).catch(e => {
-						console.log("message already deleted");
-					});
+					}).catch(e => {});
 				}
 			} catch (e) {
 				console.log(e.message);

@@ -108,10 +108,24 @@ var searches = (function () {
 		}
 	};
 	obj.deadlistserver = function (index) {
-		var found = false, counter = 0;
+		var found = false, counter = 0, temp = 0, isobj = false;
+
+		if (userqueue.length === 0) {
+			return;
+		}
 		for (var i = 0; i < userqueue.length; i++) {
+			if (typeof(userqueue[i].res[0]) === 'object') {
+				isobj = true;
+			} else {
+				isobj = false;
+			}
 			while (counter < userqueue[i].res.length && !found) {
-				if (userqueue[i].res[counter] === index) {
+				if (isobj) {
+					temp = userqueue[i].res[counter].id;
+				} else {
+					temp = userqueue[i].res[counter];
+				}
+				if (temp === index) {
 					userqueue[i].res.splice(counter, 1);
 					found = true;
 				}

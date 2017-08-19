@@ -7,5 +7,6 @@ var config = {}
 */
 config.token = ''/*String for Bot token*/;
 config.owner = ''/*Owner ID*/;
+config.password = ''/*Encryption password*/
 
 module.exports = config;
