@@ -74,6 +74,13 @@ var globalsfn = (function () {
 				level = level + amount;
 			}
 			try {
+				try {
+					if (typeof(perms[userid]) != 'object') {
+						perms[userid] = {};
+					}
+				} catch (e) {
+					perms[userid] = {};
+				}
 				perms[userid][guild] = level;
 				console.log("Updated user " + userid + " to " + level);
 			} catch (e) {
@@ -96,7 +103,13 @@ var globalsfn = (function () {
 				level = level - amount;
 			}
 			try {
-				perms[userid][guild] = level;
+				try {
+					if (typeof(perms[userid]) != 'object') {
+						perms[userid] = {};
+					}
+				} catch (e) {
+					perms[userid] = {};
+				}
 				console.log("Updated user " + userid + " to " + level);
 			} catch (e) {
 				console.log(e.message);
