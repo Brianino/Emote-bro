@@ -1,3 +1,8 @@
+const config = require('./../config.js');
+const crypto = require('crypto');
+const cipher = crypto.createCipher('aes256', config.password);
+const decipher = crypto.createDecipher('aes256', config.password);
+
 var serverfunc = (function () {
 	var servers = [], obj = {}, incomplete = [];
 	var deadlist = [], sorted = true;
@@ -5,6 +10,7 @@ var serverfunc = (function () {
 
 	readjsonfile();
 	readdeadlistfile();
+	readincompletelistfile();
 	obj.count = function () {
 		return servers.length;
 	};
@@ -20,7 +26,7 @@ var serverfunc = (function () {
 		var index = 0, emotearr = [], isdeadlist = false, newserver = false;
 		var found = false, counter = 0, temp = {};
 		var pattD = /(https?:\/\/)?discord\.gg\/[A-Za-z0-9]+/;
-		var pattI = /https?:\/\/cdn\.discordapp\.com\/icons\/[A-Za-z0-9]+\/[A-Za-z0-9]+/;
+		var pattI = /https?:\/\/cdn\.discordapp\.com\/(icons|avatars)\/[A-Za-z0-9]+\/[A-Za-z0-9]+/;
 
 		//https://cdn.discordapp.com/icons
 		try {
@@ -110,15 +116,19 @@ var serverfunc = (function () {
 					} else if (servers[index].linkreq && servers[index].link.length === 0) {
 						obj.deadlistserver(index);
 					}
+					writejsonfile();
 				} else if (!newserver) {
 					deadlist[index][prop] = input;
 					if (!checkinfo(deadlist[index])) {
 						incomplete.push(deadlist[index]);
 						deadlist.splice(index, 1);
+						writedeadlistfile();
 					} else if (prop === 'link') {
 						temp = deadlist[index];
 						deadlist.splice(index, 1);
 						obj.addserver(temp);
+						writejsonfile();
+						writedeadlistfile();
 					} else if (!deadlist[index].linkreq) {
 						temp = deadlist[index];
 						deadlist.splice(index, 1);
@@ -130,25 +140,30 @@ var serverfunc = (function () {
 				}
 			} catch (e) {
 				console.log(e.message);
-			}
+			};
 		} else if (prop === 'managed' || prop === 'unmanaged') {
 			emotearr = checkemoteinput(input);
-			if (!isdeadlist) {
-				servers[index].emotes[prop] = emotearr;
-				if (!checkinfo(servers[i])) {
-					incomplete.push(servers[index]);
-					servers.splice(index, 1);
+			try {
+				if (!isdeadlist) {
+					servers[index].emotes[prop] = emotearr;
+					if (!checkinfo(servers[index])) {
+						incomplete.push(servers[index]);
+						servers.splice(index, 1);
+					}
+					writejsonfile();
+				} else if (!newserver) {
+					deadlist[index].emotes[prop] = emotearr;
+					if (!checkinfo(deadlist[index])) {
+						incomplete.push(deadlist[index]);
+						deadlist.splice(index, 1);
+					}
+				} else {
+					incomplete[index].emotes[prop] = emotearr;
+					checkincomplete();
 				}
-			} else if (!newserver) {
-				deadlist[index].emotes[prop] = emotearr;
-				if (!checkinfo(deadlist[i])) {
-					incomplete.push(deadlist[index]);
-					deadlist.splice(index, 1);
-				}
-			} else {
-				incomplete[index].emotes[prop] = emotearr;
-				checkincomplete();
-			}
+			} catch (e) {
+				console.log(e.message);
+			};
 		} else {
 			throw {
 				"name" : "invalid server property",
@@ -176,7 +191,16 @@ var serverfunc = (function () {
 			"prop" : "unmanaged",
 			"type" : "local emotes (separate with space)"
 		}]
-	}
+	};
+	obj.checkprop = function (prop) {
+		var temp = obj.getprops();
+		for (var i = 0; i < temp.length; i++) {
+			if (prop === temp[i].prop) {
+				return true;
+			}
+		}
+		return false;
+	};
 	obj.prop = function (index, prop) {
 		if (index >= servers.length && servers.length != 0) {
 			index = servers.length - 1;
@@ -187,15 +211,6 @@ var serverfunc = (function () {
 			return servers[index][prop];
 		} catch (e) {
 			console.log(index + ", " + prop + ": " + e.message);
-		}
-	};
-	obj.checkprop = function (prop) {
-		for (var name in servers[0]) {
-			if (name === prop) {
-				return true;
-			} else if (typeof(servers[0][prop]) === 'object' || typeof(servers[0][prop]) === 'array') {
-				return nestedcheckprop(servers[0][prop]);
-			}
 		}
 	};
 	obj.addserver = function (server) {
@@ -326,13 +341,14 @@ var serverfunc = (function () {
 		if (typeof(serverlist[0].emotes.managed[0]) === 'object') {
 			servers = serverlist;
 			sorted = false;
-		}
-		for (var i = 0; i < serverlist.length; i++) {
-			try {
-				obj.addserver(serverlist[i]);
-			} catch (e) {
-				console.log("error adding server " + serverlist[i].name);
-				console.log("error: " + e.message);
+		} else {
+			for (var i = 0; i < serverlist.length; i++) {
+				try {
+					obj.addserver(serverlist[i]);
+				} catch (e) {
+					console.log("error adding server " + serverlist[i].name);
+					console.log("error: " + e.message);
+				}
 			}
 		}
 	};
@@ -447,7 +463,7 @@ var serverfunc = (function () {
 		} while (swap && counter < servers.length);
 	};
 	function checkemoteinput (input) {
-		var arr = input.split(" "), res = [];
+		var arr = input.split(" "), res = [], temp = "";
 		var patt = /<:[A-Za-z0-9_]{2,}:\d+>/;
 		var patt2 = /:[A-Za-z0-9_]{2,}:/;
 		var patt3 = /:\d+>/;
@@ -456,16 +472,18 @@ var serverfunc = (function () {
 		//<:[A-Za-z0-9_]{2,}:\\d+>
 		if (arr.length > 1) {
 			for (var i = 0; i < arr.length; i++) {
+				console.log(arr[i]);
 				if (patt.test(arr[i])) {
-					console.log("emote: " + arr[1].split(patt2.exec(arr[i]))[0] + " : " +
-						arr[i].replace(patt, patt2.exec(arr[i])));
+					console.log("emote: " + patt2.exec(arr[0]) + " : " + patt3.exec(arr[0]));
+					temp = String(patt3.exec(arr[i]));
 					res.push({
-						"id" : patt3.exec(arr[i]).substring(1, patt3.exec(arr[i]) - 1),
+						"id" : temp.substring(1, temp.length - 1),
 						"name" : patt2.exec(arr[i])
 					});
 				} else if (patt2.test(arr[i])) {
+					console.log("emote: " + arr[i]);
 					res.push({
-						"id" : "",
+						"id" : -1,
 						"name" : arr[i]
 					});
 				}
@@ -473,21 +491,24 @@ var serverfunc = (function () {
 		} else {
 			while (input.length > 0 && emoteleft) {
 				//replace each emote with "" untill string empty
-				if (patt.test(arr[1])) {
-					console.log("emote: " + patt2.exec(arr[i]) + " : " + patt3.exec(arr[i]));
+				if (patt.test(arr[0])) {
+					console.log("emote: " + patt2.exec(arr[0]) + " : " + patt3.exec(arr[0]));
+					emoteleft = true;
+					temp = String(patt3.exec(arr[0]));
+					console.log("Type: " + typeof(temp));
+					res.push({
+						"id" : temp.substring(1, temp.length - 1),
+						"name" : patt2.exec(arr[0])
+					});
+					arr[0] = arr[0].substring(patt.exec(arr[0]), arr[0].length);
+				} else if (patt2.test(arr[0])) {
+					console.log("emote: " + patt2.exec(arr[0]));
 					emoteleft = true;
 					res.push({
-						"id" : patt3.exec(arr[1]).substring(1, patt3.exec(arr[1]) - 1),
-						"name" : patt2.exec(arr[1])
+						"id" : -1,
+						"name" : patt2.exec(arr[0])
 					});
-					arr[1] = arr[1].substring(patt.exec(arr[1]), arr[1].length);
-				} else if (patt2.test(arr[1])) {
-					emoteleft = true;
-					res.push({
-						"id" : "",
-						"name" : patt2.exec(arr[1])
-					});
-					arr[1] = arr[1].substring(patt2.exec(arr[1]), arr[1].length);
+					arr[0] = arr[0].substring(patt2.exec(arr[0]), arr[0].length);
 				} else {
 					emoteleft = false;
 				}
@@ -495,23 +516,6 @@ var serverfunc = (function () {
 		}
 		return res;
 	}
-	function nestedcheckprop (subserver, prop) {
-		if (typeof(subserver) === 'object') {
-			for (var name in subserver) {
-				if (name === prop) {
-					return true;
-				}
-			}
-		} else if (typeof(subserver) === 'array') {
-			return nestedcheckprop(subserver[0], prop);
-		} else {
-			throw {
-				"name" : "Invalid Parameter",
-				"message" : "Invalid parameter passed to nestedcheckprop"
-			};
-		}
-		return false;
-	};
 	function checkincomplete() {
 		var missininfo = false, maxemotes = 0, temp = {};
 
@@ -521,11 +525,14 @@ var serverfunc = (function () {
 					temp = incomplete[i];
 					incomplete.splice(i, 1);
 					obj.addserver(temp);
+					writejsonfile();
 				} else {
 					temp = incomplete[i];
 					incomplete.splice(i, 1);
 					deadlist.push(temp);
+					writedeadlistfile();
 				}
+				writeincompletelistfile();
 			}
 		}
 	};
@@ -549,7 +556,9 @@ var serverfunc = (function () {
 		/*
 		* WRITE AND STORE SERVER DATA TO FILE
 		*/
-		fs.writeFile("Files/ServerList.json", JSON.stringify(servers), function(err) {
+		let ciphertext = cipher.update(JSON.stringify(servers), 'utf8', 'hex');
+		ciphertext += cipher.final('hex')
+		fs.writeFile("Files/ServerList.json", ciphertext, function(err) {
 			if(err) {
 				return console.log(err.message);
 			}
@@ -560,19 +569,29 @@ var serverfunc = (function () {
 		/*
 		* READ AND STORE SERVER DATA FROM A FILE
 		*/
+		var temp = {};
 		fs.readFile("Files/ServerList.json", "utf8", function read(err, data) {
 			if(err) {
 				return console.log(err.message);
 			}
 			console.log("Servers loaded!");
-			obj.fillservers(JSON.parse(data));
+			try {
+				temp = JSON.parse(data);
+			} catch (e) {
+				let plaintext = decipher.update(data, 'hex', 'utf8');
+				plaintext += decipher.final('utf8');
+				temp = JSON.parse(plaintext);
+			};
+			obj.fillservers(temp);
 		});
 	};
 	function writedeadlistfile() {
 		/*
-		* WRITE AND STORE SERVER DATA TO FILE
+		* WRITE AND STORE DEAD SERVER DATA TO FILE
 		*/
-		fs.writeFile("Files/DeadList.json", JSON.stringify(deadlist), function(err) {
+		let ciphertext = cipher.update(JSON.stringify(deadlist), 'utf8', 'hex');
+		ciphertext += cipher.final('hex')
+		fs.writeFile("Files/DeadList.json", ciphertext, function(err) {
 			if(err) {
 				return console.log(err.message);
 			}
@@ -581,14 +600,55 @@ var serverfunc = (function () {
 	};
 	function readdeadlistfile() {
 		/*
-		* READ AND STORE SERVER DATA FROM A FILE
+		* READ AND STORE DEAD SERVER DATA FROM A FILE
 		*/
+		var temp = {};
 		fs.readFile("Files/DeadList.json", "utf8", function read(err, data) {
 			if(err) {
 				return console.log(err.message);
 			}
-			console.log("Servers loaded!");
-			deadlist = JSON.parse(data);
+			console.log("Dead servers loaded!");
+			try {
+				temp = JSON.parse(data);
+			} catch (e) {
+				let plaintext = decipher.update(data, 'hex', 'utf8');
+				plaintext += decipher.final('utf8');
+				temp = JSON.parse(plaintext);
+			};
+			deadlist = temp;
+		});
+	};
+	function writeincompletelistfile() {
+		/*
+		* WRITE AND STORE INCOMPLETE SERVER DATA TO FILE
+		*/
+		let ciphertext = cipher.update(JSON.stringify(deadlist), 'utf8', 'hex');
+		ciphertext += cipher.final('hex')
+		fs.writeFile("Files/Incompletelist.json", ciphertext, function(err) {
+			if(err) {
+				return console.log(err.message);
+			}
+			console.log("Incomplete Servers saved!");
+		});
+	};
+	function readincompletelistfile() {
+		/*
+		* READ AND STORE INCOMPLETE SERVER DATA FROM A FILE
+		*/
+		var temp = {};
+		fs.readFile("Files/Incompletelist.json", "utf8", function read(err, data) {
+			if(err) {
+				return console.log(err.message);
+			}
+			console.log("Incomplete servers loaded!");
+			try {
+				temp = JSON.parse(data);
+			} catch (e) {
+				let plaintext = decipher.update(data, 'hex', 'utf8');
+				plaintext += decipher.final('utf8');
+				temp = JSON.parse(plaintext);
+			};
+			incomplete = temp;
 		});
 	};
 	return obj;

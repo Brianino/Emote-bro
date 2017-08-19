@@ -113,11 +113,9 @@ function linkcommands () {
 			};
 		}
 		if (patt.test(str)) {
-			str = "" + patt2.exec(str);
+			str = string(patt2.exec(str));
 		}
-		if (typeof(str) === 'string') {
-			str = str.toLowerCase();
-		}
+		str = str.toLowerCase();
 		console.log("Search: " + str);
 		for (var i = 0; i < count; i++) {
 			temp = servers.server(i);
@@ -164,8 +162,19 @@ function linkcommands () {
 		}
 	});
 	commands.setrun("edit", true, function (msg, str) {
-		var id = parseInt(str.split(" ")[0]), prop = str.split(" ")[1];
-		var input = str.split(" ").splice(0, 2).join(" ");
+		var split = str.split(" "), id = parseInt(split[0]), prop = split[1];
+		var input = "";
+
+		if (split.length <= 2) {
+			throw {
+				"name" : "invalid usage",
+				"message" : "missing input"
+			};
+		}
+		for (var i = 2; i < split.length; i++) {
+			input += (split[i] + " ");
+		}
+		console.log("Input: " + input);
 		if (msg.deletable) {
 			msg.delete();
 		}
@@ -179,12 +188,13 @@ function linkcommands () {
 				"message" : "invalid id: " + str.split(" ")[0]
 			};
 		}
-		if (!servers.checkprop(str)) {
+		if (!servers.checkprop(prop)) {
 			throw {
 				"name" : "invalid usage",
-				"message" : "invalid id: " + str.split(" ")[1]
+				"message" : "invalid property: " + prop
 			};
 		}
+		console.log("Attempting to edit " + prop);
 		if (prop === 'link') {
 			bot.fetchInvite(input).then((invite) => {
 				servers.updateserver(invite.guild.id, 'name', invite.guild.name);
@@ -221,7 +231,7 @@ function linkcommands () {
 			msgtimer(30, msg);
 		});
 	});
-	commands.setrun("read", true, function (msg, str) {
+	commands.setrun("read", false, function (msg) {
 		var attachments = Array.from(msg.attachments), url = "", temp = [];
 		const fs = require('fs');
 		if (msg.deletable) {
@@ -727,6 +737,8 @@ function disppage (msg, page) {
 function readobj (obj) {
 	var server = {}, found = 0;
 
+	msg.reply("This requires testing and has therefore been disabled for now");
+	return;
 	server = {
 		"id" : "",
 		"name" : "",
@@ -775,6 +787,7 @@ function readobj (obj) {
 		}
 	}
 	servers.addserver(server);
+	//servers.write();
 
 	function nestedreadobj (server, obj) {
 		var found = 0;
