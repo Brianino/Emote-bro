@@ -107,7 +107,7 @@ var searches = (function () {
 			return false;h
 		}
 	};
-	obj.deadlistserver = function (index) {
+	obj.deadlistserver = function (id) {
 		var found = false, counter = 0, temp = 0, isobj = false;
 
 		if (userqueue.length === 0) {

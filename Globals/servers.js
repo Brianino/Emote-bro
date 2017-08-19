@@ -217,11 +217,11 @@ var serverfunc = (function () {
 		}
 	};
 	obj.addserver = function (server) {
-		var large = 0, id = 0;
+		var large = 0, id = "";
 		var pattD = /(https?:\/\/)?discord\.gg\/[A-Za-z0-9]+/;
 		var pattI = /https?:\/\/cdn\.discordapp\.com\/(icons|avatars)\/[A-Za-z0-9]+\/[A-Za-z0-9]+/;
 		var temp = {
-			"id" : 0,
+			"id" : "",
 			"name" : "",
 			"link" : "",
 			"icon" : "",
@@ -231,12 +231,13 @@ var serverfunc = (function () {
 				"unmanaged" : []
 			}
 		}
-		if (typeof(server.id) === 'string') {
-			id = parseInt(server.id);
-		} else {
-			id = server.id;
+		temp.id = server.id;
+		if (isNaN(parseInt(temp.id))) {
+			throw {
+				"name" : "invalid id",
+				"message" : "the inputted id is not valid"
+			}
 		}
-		temp.id = id;
 		temp.name = server.name;
 		if (server.id === undefined || server.name === undefined) {
 			throw {

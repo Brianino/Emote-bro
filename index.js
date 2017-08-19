@@ -41,12 +41,12 @@ function linkcommands () {
 		}
 	});
 	commands.setrun("id", true, function (msg, str) {
-		var id = parseInt(str), index = 0;
+		var id = str, index = 0;
 
 		if (msg.deletable) {
 			msg.delete();
 		}
-		if (id == NaN) {
+		if (isNaN(parseInt(id))) {
 			throw {
 				"name" : "invalid usage",
 				"message" : str + " is not a valid id"
@@ -79,7 +79,7 @@ function linkcommands () {
 		for (var i = 0; i < count; i++) {
 			temp = servers.prop(i, 'name').toLowerCase();
 			if (temp.includes(str)) {
-				found.push(temp.prop(i, 'id'));
+				found.push(servers.prop(i, 'id'));
 			}
 		}
 		console.log("Found: " + found.length);
@@ -162,7 +162,7 @@ function linkcommands () {
 		}
 	});
 	commands.setrun("edit", true, function (msg, str) {
-		var split = str.split(" "), id = parseInt(split[0]), prop = split[1];
+		var split = str.split(" "), id = split[0], prop = split[1];
 		var input = "";
 
 		if (split.length <= 2) {
@@ -180,7 +180,7 @@ function linkcommands () {
 		}
 		if (str.split(" ")[0] === 'link') {
 			prop = 'link';
-			id = 0;
+			id = "";
 		}
 		if (id === NaN) {
 			throw {
@@ -285,6 +285,12 @@ function linkcommands () {
 		}
 		try {
 			id = getuser(msg, parts[0]);
+			if (id == undefined) {
+				throw {
+					"name" : "undefined",
+					"message" : "not found " + parts[0]
+				};
+			}
 		} catch (e) {
 			throw {
 				"name" : "invalid usage",
@@ -313,6 +319,12 @@ function linkcommands () {
 		}
 		try {
 			id = getuser(msg, parts[0]);
+			if (id == undefined) {
+				throw {
+					"name" : "undefined",
+					"message" : "not found " + parts[0]
+				};
+			}
 		} catch (e) {
 			throw {
 				"name" : "invalid usage",
@@ -339,7 +351,20 @@ function linkcommands () {
 			msg.delete();
 		}
 		//get channel
-		channel = getchannel(msg, parts[0]);
+		try {
+			channel = getchannel(msg, parts[0]);
+			if (id == undefined) {
+				throw {
+					"name" : "undefined",
+					"message" : "not found " + parts[0]
+				};
+			}
+		} catch (e) {
+			throw {
+				"name" : "invalid usage",
+				"message" : e.message
+			};
+		}
 		if (parts.length > 1) {
 			if (parts[1] === 'add') {
 				//run add
@@ -394,7 +419,9 @@ function linkcommands () {
 		}
 	});
 	commands.setrun("test", true, function (msg, input) {
+		console.log(input);
 		msg.channel.send("```js\n" + eval(input) + "\n```");
+		console.log("test occured");
 	});
 	commands.setrun("quit", false, function (msg) {
 		if(msg.deletable) {
@@ -417,9 +444,9 @@ bot.on('message', (message) => {
 
 	prefix = globals.p(message.guild.id);
 	startswithp = message.content.startsWith(prefix);
-	console.log();
 	if (!runcheck(message, startswithp)) {
 		if (startswithp) {
+			console.log();
 			content = message.content.substring(prefix.length);
 			temp = content.split("\n");
 			for (var i = 0; i < temp.length; i++) {
@@ -810,77 +837,49 @@ function readobj (obj) {
 };
 
 function getuser(msg, input) {
-	var mentions = Array.from(msg.mentions.members);
-	var members = Array.from(msg.guild.members);
-	var bestmatch = input.length + 1, bestmatchi = -1, temp = 0;
+	var mentions = msg.mentions.members;
+	var members = msg.guild.members;
 
-	if (mentions.length > 0) {
-		return mentions[0].id;
-	} else if (mentions.length > 1) {
+	if (Array.from(mentions).length === 1) {
+		return mentions.first().id;
+	} else if (Array.from(mentions).length > 1) {
 		throw {
 			"name" : "invalid usage",
 			"mention" : "too many mentions"
 		};
 	} else {
-		for (var i = 0; i < members.length; i++) {
-			if (input == members[i].id) {
-				return members[i].id;
-			} else if (input === members[i].nickname) {
-				return members[i].id;
-			} else if (input === members[i].user.username) {
-				return members[i].id;
-			} else if (members[i].nickname.includes(input) || members[i].user.username.includes(input)) {
-				temp = Math.min(members[i].nickname.length - input.length, members[i].user.username.length - input.length);
-				if (temp < bestmatch) {
-					bestmatchi = i;
-					bestmatch = temp;
-				}
+		if (!isNaN(parseInt(input))) {
+			if (members.has(input)) {
+				return input;
 			}
 		}
-		if (bestmatchi > -1) {
-			return members[bestmatchi].id;
-		} else {
-			throw {
-				"name" : "member not found",
-				"message" : "member doesnt exist, or not in this server"
-			}
-		}
+		throw {
+			"name" : "member not found",
+			"message" : "member doesnt exist, or not in this server"
+		};
 	}
 };
 
 function getchannel(msg, input) {
-	var mentions = Array.from(msg.mentions.channels);
-	var channels = Array.from(msg.guild.channels);
-	var bestmatch = input.length + 1, bestmatchi = -1, temp = 0;
+	var mentions = msg.mentions.members;
+	var channels = msg.guild.channels;
 
-	if (mentions.length > 0) {
-		return mentions[0].id;
+	if (Array.from(mentions).length === 1) {
+		return mentions.first().id;
 	} else if (mentions.length > 1) {
 		throw {
 			"name" : "invalid usage",
 			"mention" : "too many mentions"
 		};
 	} else {
-		for (var i = 0; i < channels.length; i++) {
-			if (input == channels[i].id) {
-				return channels[i].id;
-			} else if (input === channels[i].name) {
-				return channels[i].id;
-			} else if (channels.name.includes(input)) {
-				temp = channels.name.length;
-				if (temp < bestmatch) {
-					bestmatchi = i;
-					bestmatch = temp;
-				}
+		if (!isNaN(parseInt(input))) {
+			if (channels.has(input)) {
+				return input;
 			}
 		}
-		if (bestmatchi > -1) {
-			return channels[bestmatchi].id;
-		} else {
-			throw {
-				"name" : "channel not found",
-				"message" : "channel doesnt exist"
-			}
+		throw {
+			"name" : "channel not found",
+			"message" : "channel doesnt exist"
 		}
 	}
 };

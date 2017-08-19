@@ -61,10 +61,11 @@ var globalsfn = (function () {
 	};
 	globals.increaseperms = function (author, userid, guild, amount) {
 		var level = 0, authorp = globals.getperms(author, guild);
+
 		try {
 			level = perms[userid][guild];
 		} catch (e) {
-			console.log(e.message);
+			//console.log(e.message);
 			level = 0;
 		}
 		if ((level + 1) < authorp) {
@@ -87,6 +88,7 @@ var globalsfn = (function () {
 				console.log(e.message);
 			}
 		}
+		writesettingsjsonfile();
 	};
 	globals.removeperms = function (author, userid, guild, amount) {
 		var level = 0, authorp = globals.getperms(author, guild);
@@ -115,21 +117,24 @@ var globalsfn = (function () {
 				console.log(e.message);
 			}
 		}
+		writesettingsjsonfile();
 	};
 	globals.getperms = function (userid, guild) {
-		var perms = 0;
-		if (userid === owner) {
+		var res = 0;
+		if (userid == owner) {
 			return 10;
 		}
 		try {
-			perms = perms[userid][guild];
-			if (perms === undefined) {
-				perms = 0;
+			res = perms[userid][guild];
+			console.log("perms: " + res);
+			if (res == undefined) {
+				res = 0;
 			}
 		} catch (e) {
-			perms = 0;
+			console.log(e.message);
+			res = 0;
 		}
-		return perms;
+		return res;
 	};
 	globals.setowner = function (userid) {
 		if (owner === 0) {
@@ -150,8 +155,12 @@ var globalsfn = (function () {
 			console.log("Settings were loaded!");
 			try {
 				temp = JSON.parse(data);
-				for (var name in temp) {
+				for (var name in temp.prefix) {
 					prefix[name] = temp[name];
+				}
+				perms = temp.perms;
+				if (perms == undefined) {
+					perms = {};
 				}
 			} catch (e) {
 				console.log(e.message);
@@ -162,7 +171,11 @@ var globalsfn = (function () {
 		/*
 		* WRITE SETTINGS TO FILE
 		*/
-		fs.writeFile("Files/Settings.json", JSON.stringify(prefix), function(err) {
+		var temp = {
+			"prefix" : prefix,
+			"perms" : perms
+		};
+		fs.writeFile("Files/Settings.json", JSON.stringify(temp), function(err) {
 			if(err) {
 				return console.log(err.message);
 			}

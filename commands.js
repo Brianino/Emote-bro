@@ -243,7 +243,6 @@ commands.test = {
 	"correctusage" : "",
 	"reqinput" : true,
 	"run" : function (msg, input) {
-		msg.channel.send(eval(input));
 	}
 }
 
