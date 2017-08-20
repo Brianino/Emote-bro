@@ -29,11 +29,13 @@ var serverfunc = (function () {
 		//https://cdn.discordapp.com/icons
 		try {
 			index = obj.findbyid(id);
+			console.log("Editing listed server");
 			found = true;
 		} catch (e) {
 			if (typeof(e) === 'number') {
 				while (counter < deadlist.length && !found) {
 					if (deadlist[counter].id == id) {
+						console.log("Editing deadlist server");
 						found = true;
 						isdeadlist = true;
 						index = counter;
@@ -46,27 +48,23 @@ var serverfunc = (function () {
 			counter = 0;
 			while (counter < incomplete.length && !found) {
 				if (incomplete[counter].id == id) {
+					console.log("Editing incomplete server");
 					found = true;
 					index = counter;
 				}
 				counter++;
 			}
 			if (!found) {
+				console.log("New Server");
 				incomplete.push({
 					"id" : id,
 					"name" : "",
 					"link" : "",
 					"icon" : "",
-					"linkreq" : null,
+					"linkreq" : true,
 					"emotes" : {
-						"managed" : [{
-							"id" : 0,
-							"name" : ""
-						}],
-						"unmanaged" : [{
-							"id" : 0,
-							"name" : ""
-						}]
+						"managed" : [],
+						"unmanaged" : []
 					}
 				});
 				index = incomplete.length - 1;
@@ -106,7 +104,7 @@ var serverfunc = (function () {
 				}
 			}
 			try {
-				if (!isdeadlist) {
+				if (!isdeadlist && !newserver) {
 					servers[index][prop] = input;
 					if (!checkinfo(servers[index])) {
 						incomplete.push(servers[index]);
@@ -144,7 +142,7 @@ var serverfunc = (function () {
 		} else if (prop === 'managed' || prop === 'unmanaged') {
 			emotearr = checkemoteinput(input);
 			try {
-				if (!isdeadlist) {
+				if (!isdeadlist && !newserver) {
 					servers[index].emotes[prop] = emotearr;
 					if (!checkinfo(servers[index])) {
 						incomplete.push(servers[index]);
@@ -161,6 +159,7 @@ var serverfunc = (function () {
 					}
 					writedeadlistfile();
 				} else {
+					console.log("Editing incomplete " + prop);
 					incomplete[index].emotes[prop] = emotearr;
 					checkincomplete();
 				}
@@ -450,6 +449,8 @@ var serverfunc = (function () {
 		return res;
 	}
 	obj.write = writejsonfile;
+	obj.writed = writedeadlistfile;
+	obj.writei = writeincompletelistfile;
 	obj.read = readjsonfile;
 	function bublesort () {
 		var swap = false, counter = 0, temp = {};
@@ -479,7 +480,7 @@ var serverfunc = (function () {
 			for (var i = 0; i < arr.length; i++) {
 				console.log(arr[i]);
 				if (patt.test(arr[i])) {
-					console.log("emote: " + patt2.exec(arr[0]) + " : " + patt3.exec(arr[0]));
+					console.log("emote: " + patt2.exec(arr[i]) + " : " + patt3.exec(arr[i]));
 					temp = String(patt3.exec(arr[i]));
 					res.push({
 						"id" : temp.substring(1, temp.length - 1),
@@ -527,19 +528,21 @@ var serverfunc = (function () {
 		for (var i = 0; i < incomplete.length; i++) {
 			if (checkinfo(incomplete[i])) {
 				if (incomplete[i].link.length > 0 || !incomplete[i].linkreq) {
+					console.log("Will add to main list")
 					temp = incomplete[i];
 					incomplete.splice(i, 1);
 					obj.addserver(temp);
 					writejsonfile();
 				} else {
+					console.log("Will deadlist");
 					temp = incomplete[i];
 					incomplete.splice(i, 1);
 					deadlist.push(temp);
 					writedeadlistfile();
 				}
-				writeincompletelistfile();
 			}
 		}
+		writeincompletelistfile();
 	};
 	function checkinfo(server) {
 		var missininfo = false, maxemotes = 0, temp = "";
@@ -632,7 +635,7 @@ var serverfunc = (function () {
 		* WRITE AND STORE INCOMPLETE SERVER DATA TO FILE
 		*/
 		const cipher = crypto.createCipher('aes256', config.password);
-		let ciphertext = cipher.update(JSON.stringify(deadlist), 'utf8', 'hex');
+		let ciphertext = cipher.update(JSON.stringify(incomplete), 'utf8', 'hex');
 		ciphertext += cipher.final('hex')
 		fs.writeFile("Files/Incompletelist.json", ciphertext, function(err) {
 			if(err) {
