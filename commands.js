@@ -150,14 +150,14 @@ commands.props = {
 	"description" : "Display server editable properties",
 	"permlevel" : 1,
 	"flag" : "MANAGE_MESSAGES",
-	"correctusage" : "read [.json file attatched]",
+	"correctusage" : "props",
 	"reqinput" : false,
 	"run" : function () {
 		//Display server editable properties
 	}
 };
 commands.read = {
-	"description" : "Read server data from json file",
+	"description" : "Read server data from json file (coming soon)",
 	"permlevel" : 1,
 	"flag" : "SEND_MESSAGES",
 	"correctusage" : "read [.json file attatched]",
@@ -224,6 +224,26 @@ commands.log = {
 	"reqinput" : false,
 	"run" : function () {
 		//log global vars
+	}
+};
+commands.dead = {
+	"description" : "Display dead servers that require invites",
+	"permlevel" : 1,
+	"flag" : "MANAGE_MESSAGES",
+	"correctusage" : "dead",
+	"reqinput" : false,
+	"run" : function () {
+		//Display dead servers that require invites
+	}
+};
+commands.incomplete = {
+	"description" : "Display information required for these servers to be listed",
+	"permlevel" : 1,
+	"flag" : "MANAGE_MESSAGES",
+	"correctusage" : "incomplete",
+	"reqinput" : false,
+	"run" : function () {
+		//Display required info for incomplete servers
 	}
 };
 commands.quit = {
