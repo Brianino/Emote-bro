@@ -78,7 +78,7 @@ function linkcommands () {
 		console.log("Search: " + str);
 		for (var i = 0; i < count; i++) {
 			temp = servers.prop(i, 'name').toLowerCase();
-			if (temp.includes(str)) {
+			if (temp.includes(str.toLowerCase())) {
 				found.push(servers.prop(i, 'id'));
 			}
 		}
@@ -163,25 +163,32 @@ function linkcommands () {
 	});
 	commands.setrun("edit", true, function (msg, str) {
 		var split = str.split(" "), id = split[0], prop = split[1];
+		var pattD = /(https?:\/\/)?discord\.gg\/[A-Za-z0-9]+/;
 		var input = "";
 
-		if (split.length <= 2) {
-			throw {
-				"name" : "invalid usage",
-				"message" : "missing input"
-			};
-		}
-		for (var i = 2; i < split.length; i++) {
-			input += (split[i] + " ");
-		}
-		console.log("Input: " + input);
 		if (msg.deletable) {
-			msg.delete();
+			//msg.delete();
 		}
 		if (str.split(" ")[0] === 'link') {
 			prop = 'link';
 			id = "";
+			if (pattD.test(str)) {
+				input = String(pattD.exec(str));
+			} else {
+				input = "";
+			}
+		} else {
+			if (split.length < 2) {
+				throw {
+					"name" : "invalid usage",
+					"message" : "missing input"
+				};
+			}
+			for (var i = 2; i < split.length; i++) {
+				input += (split[i] + " ");
+			}
 		}
+		console.log("Input: " + input);
 		if (id === NaN) {
 			throw {
 				"name" : "invalid usage",
@@ -195,7 +202,7 @@ function linkcommands () {
 			};
 		}
 		console.log("Attempting to edit " + prop);
-		if (prop === 'link') {
+		if (prop === 'link' && input != "") {
 			bot.fetchInvite(input).then((invite) => {
 				servers.updateserver(invite.guild.id, 'name', invite.guild.name);
 				servers.updateserver(invite.duild.id, 'link', invite.url);
@@ -228,15 +235,17 @@ function linkcommands () {
 			});
 		};
 		msg.channel.send({embed: embedobj}).then((msg) => {
-			msgtimer(30, msg);
+			//msgtimer(30, msg);
 		});
 	});
 	commands.setrun("read", false, function (msg) {
 		var attachments = Array.from(msg.attachments), url = "", temp = [];
 		const fs = require('fs');
 		if (msg.deletable) {
-			msg.delete();
+			//msg.delete();
 		}
+		msg.reply("Functionality coming soon");
+		return;
 		if (attachments.length == 1) {
 			if (attachments[0].filename.includes(".json")) {
 				url = new URL(attachments[0].url);
@@ -418,6 +427,52 @@ function linkcommands () {
 			console.log(e.message);
 		}
 	});
+	commands.setrun("dead", false, function (msg) {
+		var temp = servers.getdeadlist();
+		var embedobj = {};
+		if (msg.deletable) {
+			msg.delete();
+		}
+		embedobj = {
+			"title" : "Dead Servers",
+			"description" : "These servers require invite links",
+			"color" : 0xFF0000,
+			"fields" : []
+		};
+		if (temp != null) {
+			for (var i = 0; i < temp.length && i < 15; i++) {
+				embedobj.fields.push({
+					"name": temp[i].name,
+					"value" : temp[i].id
+				});
+			}
+		}
+		msg.channel.send({embed: embedobj}).then((msg) => {
+			msgtimer(30, msg);
+		});
+	});
+	commands.setrun("incomplete", false, function (msg) {
+		var temp = servers.getincompleteprops();
+		var embedobj = {};
+		if (msg.deletable) {
+			msg.delete();
+		}
+		embedobj = {
+			"title" : "Incomplete Servers",
+			"description" : "Information required for these servers to be listed",
+			"color" : 0xFF0000,
+			"fields" : []
+		};
+		for (var i = 0; i < temp.length && i < 15; i++) {
+			embedobj.fields.push({
+				"name": temp[i].identifier,
+				"value" : "missing " + temp[i].missing
+			});
+		}
+		msg.channel.send({embed: embedobj}).then((msg) => {
+			msgtimer(30, msg);
+		});
+	})
 	commands.setrun("test", true, function (msg, input) {
 		console.log(input);
 		msg.channel.send("```js\n" + eval(input) + "\n```");
@@ -506,6 +561,7 @@ bot.on('message', (message) => {
 				}
 			}
 		} else {
+			//console.log(message.content);
 			checklink(message.content);
 		}
 	}
@@ -520,7 +576,7 @@ function runcheck (msg, startswithp) {
 	if (searchqueue.verifychannel(msg.author.id, msg.channel.id) && !startswithp) {
 		parts = msg.content.split(" ");
 		if (parts.length > 1) {
-			if (parts[0] == 'page') {
+			if (parts[0].toLowerCase() == 'page') {
 				page = parseInt(parts[1]);
 				if (isNaN(page)) {
 					msg.reply("Incorrect usage, try `page [page number]`");
@@ -667,6 +723,7 @@ function dispserver (msg, index) {
 			if (server.name != invite.guild.name) {
 				servers.updateserver(invite.guild.id, 'name', invite.guild.name);
 				embedobj.title = invite.guild.name + "(Updated Name)";
+				console.log("ok 2");
 			}
 			msg.channel.send({embed: embedobj}).then((msg) => {
 				try {
@@ -675,10 +732,12 @@ function dispserver (msg, index) {
 				msgtimer(60, msg);
 			});
 		}).catch((e) => {
+			console.log("rip");
+			console.log(server.linkreq);
 			if (server.linkreq) {
 				embedobj.description = "Dead Invite Link";
 				searchqueue.deadlistserver(server.id);
-				servers.deadlistserver(index);
+				servers.deadlistserver(servers.findbyid(server.id));
 				let page = searchqueue.getusersearch(msg.author.id).page;
 				disppage(msg, page);
 			} else {
@@ -719,7 +778,8 @@ function disppage (msg, page) {
 	}
 	embedobj = {
 		"title" : "Severs Found",
-		"description" : "Type `[Number]` For server info or `Page [Number]` for the next page",
+		"description" : "Type `[Number]` For server info or `Page [Number]` for the next page\n" + 
+		"Can be used untill the message is deleted",
 		"color" : 0x0000FF,
 		"fields" : [],
 		"footer" : {
@@ -885,12 +945,18 @@ function getchannel(msg, input) {
 };
 
 function checklink (input) {
-	var patt = /(https?:\/\/)?discord\.gg\/[A-Za-z0-9]+/, link = "";
+	var patt = /https?:\/\/discord\.gg\/[A-Za-z0-9]+/, link = "";
+	var patt2 = /discord\.gg\/[A-Za-z0-9]+/
 	var index = 0, link = "";
 
 	while (patt.test(input)) {
-		index = input.find(patt);
-		link = patt.exec(input);
+		if (input.search(patt) < input.search(patt2)) {
+			index = input.search(patt);
+			link = String(patt.exec(input));
+		} else {
+			index = input.search(patt2);
+			link = String(patt2.exec(input));
+		}
 		bot.fetchInvite(link).then((invite) => {
 			var server = {}, deadlist = [], incomplete = [], max = 0;
 			var counter = 0, found = false;
@@ -955,7 +1021,7 @@ function checklink (input) {
 				});
 			}
 		});
-		index = index + link.length;
+		index = index + String(link.length);
 		input = input.substring(index, input.length);
 	}
 };

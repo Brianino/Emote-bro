@@ -125,7 +125,7 @@ var searches = (function () {
 				} else {
 					temp = userqueue[i].res[counter];
 				}
-				if (temp === index) {
+				if (temp === id) {
 					userqueue[i].res.splice(counter, 1);
 					found = true;
 				}
